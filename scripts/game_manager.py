@@ -24,10 +24,11 @@ class Game_manager:
     def __init__(self,game,play_type,p_name="Player"):
         self.game = game
         self.play_type = play_type
-        self.player = Player(0, 0, 16, 16, 100, 3, 6, 0.3)
+        self.player = Player(self,0, 0, 16, 16, 100, 3, 6, 0.3)
         self.player_name = p_name
         self.event = None
         self.clock = pygame.time.Clock()
+        self.console = scripts.Console(self.game,(self.game.display.get_width()-4,25))
         self.current_level = 'Debug_level_0'
         self.bullets = []
         self.particles = []
@@ -36,6 +37,11 @@ class Game_manager:
         self.level = None
         self.tiles = self.game.tiles
         self.scroll = [0,0]
+        self.alt_key = False
+        self.shift = False
+        self.ctrl = False
+        self.show_console = False
+        
         #controller stuff
         self.controller_input = self.game.json_h.files["controller_input"]
         self.right_pressed = False
@@ -46,6 +52,7 @@ class Game_manager:
         self.tile_data = self.game.tile_data
         self.gun_data = self.game.json_h.get_data("gun_data")
         self.font = Text("data/images/font.png", 1,3)
+        self.ammo_data = self.game.ammo_data
         
         #Multiplayer stuff
         self.hosting = False
@@ -71,8 +78,8 @@ class Game_manager:
             if spawn[0] == "spawn":
                 self.player.set_pos(spawn[1][0]*self.game.TILESIZE,spawn[1][1]*self.game.TILESIZE)
         for gun_pos in self.level["guns"]:
-            gun = Gun(gun_pos[0],self.gun_data[gun_pos[0]],self.game.FPS,(gun_pos[0] in self.gun_data["shotguns"]))
-            item = scripts.Item(gun_pos[1][0]*self.game.TILESIZE,gun_pos[1][1]*self.game.TILESIZE,gun_pos[0],"Guns",self.game.FPS,gun)
+            gun = Gun(self,gun_pos[0],self.gun_data[gun_pos[0]],self.game.FPS)
+            item = scripts.Item(self,gun_pos[1][0]*self.game.TILESIZE,gun_pos[1][1]*self.game.TILESIZE,gun_pos[0],"Guns",self.game.FPS,gun)
             self.items.append(item)
 
     def reload_controller(self):
@@ -248,8 +255,23 @@ class Game_manager:
             if chunk_str in active_chunks:
                 item.render(self.game.display,scroll)
             if item.rect.colliderect(self.player.rect):
-                if self.player.add_item(item) == True:
-                    item_remove_list.append(n)
+                if item.item_group in ["Guns"]:
+                    if self.player.add_weapon_item(item) == True:
+                        item_remove_list.append(n)
+                if item.item_group == "Ammo":
+                    value = item.ref_obj.get_val()
+                    a_type = item.ref_obj.ammo_type
+                    if self.player.equipped_weapon.gun_group == self.ammo_data[a_type][1]: # Firstly check if the equipped weapon is of this ammo type
+                        self.player.equipped_weapon.add_ammo(value)
+                        item_remove_list.append(n)
+                    else: #If not,look through the inventory for this ammo type
+                        for i in range(4): # First 4 slots are where the weapons are in
+                            gun = self.player.inventory.inventory[i]
+                            if len(gun) != 0:
+                                if gun[0].ref_obj.gun_group == self.ammo_data[a_type][1]:
+                                    gun[0].ref_obj.add_ammo(value)
+                                    item_remove_list.append(n)
+                                    break                                    
             n += 1
         item_remove_list.sort(reverse=True)
         for item in item_remove_list:
@@ -337,6 +359,9 @@ class Game_manager:
         if self.player.equipped_weapon != None:
             self.font.render(self.game.display,f"{self.player.equipped_weapon.ammo}/{self.player.equipped_weapon.ammo_l}",0,0,(255,255,255))
 
+        if self.show_console == True:
+            self.console.render()
+
         if controller_input["active"] == True:
             if controller_input["axis_val"][0] > 0.5:
                 self.player.right = True
@@ -375,35 +400,49 @@ class Game_manager:
 
         for event in pygame.event.get():
             self.event = event
+            if self.show_console == True:
+                self.console.get_event(event)
+                
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
             if event.type == KEYDOWN:
-                if event.key == K_a:
-                    self.player.left = True
-                if event.key == K_d:
-                    self.player.right = True
-                if event.key == K_r:
-                    if self.player.equipped_weapon != None:
-                        if self.player.equipped_weapon.reload_gun == False:
-                            self.player.equipped_weapon.reload_gun = True
-                if event.key == K_SPACE:
-                    if self.player.jump_count < 2:
-                        self.player.vel_y = -self.player.jump
-                        self.player.jump_count += 1
-                    if self.player.on_wall == True and self.player.collisions["bottom"] == False:
-                        self.player.wall_jump_true = True
-                        self.player.jump_count = 1
+                if event.key == K_ESCAPE:
+                    self.show_console = False
+                    
+                if self.show_console == False:
+                    if event.key == K_a:
+                        self.player.left = True
+                    if event.key == K_d:
+                        self.player.right = True
+                    if event.key == K_r:
+                        if self.player.equipped_weapon != None:
+                            if self.player.equipped_weapon.reload_gun == False:
+                                self.player.equipped_weapon.reload_gun = True
+                    if event.key == K_LALT:
+                        self.alt_key = True
+                    if event.key == K_RALT:
+                        self.alt_key = True
+                    if event.key == K_c:
+                        if self.alt_key == True:
+                            self.show_console = True
+                    if event.key == K_SPACE:
+                        if self.player.jump_count < 2:
+                            self.player.vel_y = -self.player.jump
+                            self.player.jump_count += 1
+                        if self.player.on_wall == True and self.player.collisions["bottom"] == False:
+                            self.player.wall_jump_true = True
+                            self.player.jump_count = 1
                         
-                if event.key == K_0:
-                    self.player.weapon_index = 0
-                    self.player.equip_weapon()
-                if event.key == K_1:
-                    self.player.weapon_index = 1
-                    self.player.equip_weapon()
-                if event.key == K_2:
-                    self.player.weapon_index = 2
-                    self.player.equip_weapon()
+                    if event.key == K_0:
+                        self.player.weapon_index = 0
+                        self.player.equip_weapon()
+                    if event.key == K_1:
+                        self.player.weapon_index = 1
+                        self.player.equip_weapon()
+                    if event.key == K_2:
+                        self.player.weapon_index = 2
+                        self.player.equip_weapon()
 
             if event.type == MOUSEMOTION:
                 self.controller_pos = list(relative_pos)
@@ -411,10 +450,15 @@ class Game_manager:
                 pygame.mouse.set_visible(True)
                         
             if event.type == KEYUP:
-                if event.key == K_a:
-                    self.player.left = False
-                if event.key == K_d:
-                    self.player.right = False
+                if self.show_console == False:
+                    if event.key == K_a:
+                        self.player.left = False
+                    if event.key == K_d:
+                        self.player.right = False
+                    if event.key == K_LALT:
+                        self.alt_key = False
+                    if event.key == K_RALT:
+                        self.alt_key = False
 
         self.game.screen.blit(pygame.transform.scale(self.game.display, self.game.win_dims), (0,0))
         pygame.display.update()

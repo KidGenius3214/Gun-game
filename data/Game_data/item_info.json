@@ -1,2 +1,2 @@
-{"Guns":{"revolver":["data/images/guns/revolver.png",1.8,1],"P90":["data/images/guns/P90.png",3.5,3],"AUG":["data/images/guns/AUG.png",3.5,3],"Famas":["data/images/guns/Famas.png",2.5,3], "Pump shotgun":["data/images/guns/Pump_shotgun.png",4,2]},
- "Ammo":{"pistol_ammo":["data/images/pistol_ammo.png",0.8,1]} }
+{"Guns":{"Revolver":["data/images/guns/revolver.png",1.8,1],"P90":["data/images/guns/P90.png",3.5,3],"Aug":["data/images/guns/AUG.png",3.5,3],"Famas":["data/images/guns/Famas.png",2.5,3], "Pump Shotgun":["data/images/guns/Pump_shotgun.png",4,2]},
+ "Ammo":{"Pistol Ammo":["data/images/items/pistol_ammo.png",1.8,1], "Shotgun Ammo":["data/images/items/shotgun_ammo.png",1.8,1] }}

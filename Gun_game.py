@@ -24,6 +24,8 @@ class Game:
         self.controller_input = self.json_h.load("data/Game_data/controller_input.json", "controller_input")
         self.gun_data = self.json_h.load("data/Game_data/guns.json","gun_data")
         self.tile_data = self.json_h.load("data/Game_data/tile_data.json","tile_data")
+        self.item_info = self.json_h.load("data/Game_data/item_info.json","item_data")
+        self.ammo_data = self.json_h.load("data/Game_data/ammo_info.json","ammo_data")
 
         #images
         # Zone 1 images

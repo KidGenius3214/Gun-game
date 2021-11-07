@@ -8,7 +8,7 @@ with open("data/Game_data/item_info.json","r") as file:
     file.close()
 
 class Item:
-    def __init__(self,x,y,item_name,item_group,FPS,reference_obj=None):
+    def __init__(self,game,x,y,item_name,item_group,FPS,reference_obj=None):
         self.x = x
         self.y = y
         self.item_name = item_name

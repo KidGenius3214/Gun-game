@@ -39,12 +39,23 @@ class Bullet:
 
 
 class Gun:
-    def __init__(self,gun,gun_info,FPS,is_shotgun=False):
+    def __init__(self,game,gun,gun_info,FPS):
+        self.game = game
         self.gun_info = gun_info
         self.gun = gun
         self.FPS = FPS
         self.gun_img = pygame.image.load(self.gun_info["image"]).convert()
         self.gun_img.set_colorkey((255,255,255))
+        self.gun_group = ""
+        if self.gun in self.game.gun_data["Shotguns"]:
+            self.gun_group = "Shotguns"
+        if self.gun in self.game.gun_data["Pistols"]:
+            self.gun_group = "Pistols"
+        if self.gun in self.game.gun_data["Rifles"]:
+            self.gun_group = "Rifles"
+        if self.gun in self.game.gun_data["Snipers"]:
+            self.gun_group = "Snipers"
+            
         self.ammo = gun_info["ammo"]
         self.ammo_l = gun_info["ammo_loaded"]
         self.speed = gun_info["speed"]
@@ -55,7 +66,6 @@ class Gun:
         self.reload_gun = False
         self.has_ammo = True
         self.flip = True
-        self.is_shotgun = is_shotgun
         self.crit_dmg = gun_info["crit_dmg"]
         self.render_offset = gun_info["render_offset"]
         self.bullet_size = gun_info["bullet_size"]
@@ -67,7 +77,7 @@ class Gun:
             self.bullet_img = None
 
     def shoot(self,bullet_list,owner,pos,angle):
-        if self.is_shotgun != True:
+        if self.gun_group != "Shotguns":
             if self.shot == False and self.reload_gun == False and self.has_ammo == True:
                 dmg = random.randint(self.dmg[0],self.dmg[1])
                 if random.randint(1,100) <= self.crit_rate:
@@ -140,4 +150,20 @@ class Gun:
             self.reload_time -= 1
             if self.reload_time <= 0:
                 self.reload()
+
+class Ammo:
+    def __init__(self,game,ammo_type):
+        self.game = game
+        self.ammo_type = ammo_type
+        self.value = self.game.ammo_data[ammo_type][0]
+        self.gun_group = self.game.ammo_data[ammo_type][1]
+
+    def get_val(self):
+        return self.value
+
+    def get_group(self):
+        return self.gun_group
+
+
+    
         

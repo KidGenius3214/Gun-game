@@ -6,7 +6,7 @@ pygame.init()
 import scripts
 
 class Player(scripts.Entity):
-    def __init__(self,x,y,w,h,health,vel,jump,gravity,g_limit=6):
+    def __init__(self,game,x,y,w,h,health,vel,jump,gravity,g_limit=6):
         super().__init__(x,y,w,h,vel,jump)
 
         self.state = "Idle"
@@ -37,12 +37,16 @@ class Player(scripts.Entity):
         self.weapon_index = 0
 
         # Inventory stuff
-        self.inventory = scripts.Inventory(3)
+        # First 4 slots are where the weapons are stored
+        self.inventory = scripts.Inventory(7) 
 
-    def add_item(self,item):
+    def add_weapon_item(self,item): #add weapons
         free_slots = self.inventory.free_slots()
         if len(free_slots) != 0:
-            return self.inventory.add_item(item,free_slots[0],True)
+            if free_slots[0] <= 3:
+                return self.inventory.add_item(item,free_slots[0],True)
+            else:
+                return False
         else:
             return False
 

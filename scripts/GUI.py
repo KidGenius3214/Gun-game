@@ -84,9 +84,10 @@ class Text_Input:
         if self.selected == True:
             if event.type == pygame.KEYDOWN:
                 if len(self.text) < self.text_limit:
-                    self.text += event.unicode
+                    if event.unicode not in ['\r','\x08']:
+                        self.text += event.unicode
                 if event.key == pygame.K_BACKSPACE:
-                    self.text = self.text[:-2]
+                    self.text = self.text[:-1]
                     self.backspace = True
 
             if event.type == pygame.KEYUP:
