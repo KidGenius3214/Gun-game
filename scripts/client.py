@@ -1,6 +1,6 @@
 import socket
 import subprocess
-import pickle
+import json
 
 class Client:
     def __init__(self,player,port,ip):
@@ -24,15 +24,15 @@ class Client:
     def set_id(self,_id):
         self.id = _id
 
-    def send(self,data,pick=False):
-        if pick == True:
-            self.socket.send(pickle.dumps(data))
+    def send(self,data,json_encode=False):
+        if json_encode == True:
+            self.socket.send(json.dumps(data))
         else:
             self.socket.send(data.encode('utf-8'))
 
-    def recv(self,pick=False,val=1):
-        if pick != True:
+    def recv(self,jason_encode=False,val=1):
+        if json_encode != True:
             data = self.socket.recv(2048*val).decode("utf-8")
         else:
-            data = pickle.loads(self.socket.recv(2048*val))
+            data = json.loads(self.socket.recv(2048*val))
         return data

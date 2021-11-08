@@ -6,8 +6,8 @@ import scripts
 from .player import *
 from .client import *
 from .weapons import *
-import sys, math, random,pickle,time
-import pickle
+import sys, math, random,json,time
+import json,pickle
 
 #get the ip if this play is a host
 def get_wifi_ip():
@@ -172,15 +172,15 @@ class Game_manager:
                 self.client.send(str(self.hosting))
                 if self.client.recv() == "Send game info":
                     time.sleep(0.01) # delay sending more of the data
-                    self.client.send(game_info,pick=True)
+                    self.client.send(game_info,json_encode=True)
                     
                 data = {"loc":[0,0],"name":self.player_name}
-                self.client.send(data,pick=True)
-                pos = self.client.recv(pick=True,val=8)
+                self.client.send(data,json_encode=True)
+                pos = self.client.recv(json_encode=True,val=8)
                 self.client.set_id(pos[1])
                 self.player.set_pos(int(pos[0][0])*self.game.TILESIZE,int(pos[0][1])*self.game.TILESIZE)
                 self.client.send("get")
-                self.players,_,_ = self.client.recv(pick=True,val=2)
+                self.players,_,_ = self.client.recv(json_encode=True,val=2)
         else:
             self.client = Client(self.player,port,ip)
             if self.client.connect() == "Can't connect":
@@ -190,13 +190,13 @@ class Game_manager:
                 self.client.send("False")
                 time.sleep(0.2) # delay sending more of the data
                 data = {"loc":[0,0],"name":self.player_name}
-                self.client.send(data,pick=True)
-                pos = self.client.recv(pick=True,val=8)
+                self.client.send(data,json_encode=True)
+                pos = self.client.recv(json_encode=True,val=8)
                 print(pos)
                 self.client.set_id(pos[1])
                 self.player.set_pos(int(pos[0][0]),int(pos[0][1]))
                 self.client.send("get")
-                self.players,_,_ = self.client.recv(pick=True,val=8)
+                self.players,_,_ = self.client.recv(json_encode=True,val=8)
 
     def normal_play(self):
         self.game.display.fill((90,90,90))
@@ -606,7 +606,7 @@ class Game_manager:
         command = f"move:{self.player.rect.x}:{self.player.rect.y}"
 
         self.client.send(command)
-        self.players,_ = self.client.recv(pick=True,val=2)
+        self.players,_ = self.client.recv(json_encode=True,val=2)
 
         self.game.screen.blit(pygame.transform.scale(self.game.display, self.game.win_dims), (0,0))
         pygame.display.update()   

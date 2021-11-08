@@ -3,7 +3,7 @@ import subprocess
 from threading import Thread
 from _thread import *
 import random
-import pickle
+import json
 import os
 import time
 
@@ -64,16 +64,16 @@ def client(conn,_id):
             command = conn.recv(2048*8).decode('utf-8')
             if command == "get":
                 data = [players,[],_id]
-                conn.send(pickle.dumps(data))
+                conn.send(json.dumps(data))
             if command.split(':')[0] == "move":
                 pos = [int(command.split(':')[1]),int(command.split(':')[2])]
                 players[_id]["loc"] = pos
                 data = [players,[]]
-                conn.send(pickle.dumps(data))
+                conn.send(json.dumps(data))
             if command.split(':')[0] == "set_map":
                 path = [command.split(':')[1],command.split(':')[2]]
                 with open(maps_path+path[0]+path[1]+".level", "rb") as file:
-                    level = pickle.load(file)
+                    level = json.load(file)
                     file.close()
             if command == 'quit':
                 break
@@ -99,13 +99,13 @@ while True:
     if test_host == "True":
         host = _id
         conn.send("Send game info".encode('utf-8'))
-        gamemode,player_limit,spawn_points = pickle.loads(conn.recv(2048*8))
+        gamemode,player_limit,spawn_points = json.loads(conn.recv(2048*8))
         
-    player_data = pickle.loads(conn.recv(2048*8))
+    player_data = json.loads(conn.recv(2048*8))
     print(f"[SERVER] {player_data['name']} has connected on id: {_id}")
     player_data["loc"] = player_spawn()[1]
     players[_id] = player_data
-    conn.send(pickle.dumps([player_data["loc"],_id]))
+    conn.send(json.dumps([player_data["loc"],_id]))
     connections += 1
 
     p_thread = Thread(target=client,args=(conn,_id))
