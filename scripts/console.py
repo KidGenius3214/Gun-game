@@ -84,7 +84,8 @@ class Console:
                 gun_spawn = command[1].split(":")
                 try:
                     gun_spawn[1] = gun_spawn[1].replace('_', ' ')
-                    Gun = scripts.Gun(self.game.game_manager,gun_spawn[1],self.game.gun_data[gun_spawn[1]],self.game.FPS)
+                    gun_data = self.game.gun_data[gun_spawn[1]]
+                    Gun = scripts.Gun(self.game.game_manager,gun_spawn[1],gun_data,self.game.FPS)
                     if len(command) == 3:
                         pos = command[2].split(';')
                         item = scripts.Item(self.game.game_manager,int(pos[0]),int(pos[1]),gun_spawn[1],"Guns",self.game.FPS,Gun)

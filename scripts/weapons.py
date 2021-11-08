@@ -79,7 +79,7 @@ class Gun:
     def shoot(self,bullet_list,owner,pos,angle):
         if self.gun_group != "Shotguns":
             if self.shot == False and self.reload_gun == False and self.has_ammo == True:
-                dmg = random.randint(self.dmg[0],self.dmg[1])
+                dmg = self.dmg
                 if random.randint(1,100) <= self.crit_rate:
                     dmg = random.randint(self.crit_dmg[0],self.crit_dmg[1])
                 
@@ -95,7 +95,7 @@ class Gun:
         else:
             if self.shot == False and self.reload_gun == False and self.has_ammo == True:
                 for i in range(10):
-                    dmg = random.randint(self.dmg[0],self.dmg[1])
+                    dmg = self.dmg
                     if random.randint(1,100) <= self.crit_rate:
                         dmg = random.randint(self.crit_dmg[0],self.crit_dmg[1])
                     
