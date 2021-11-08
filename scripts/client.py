@@ -26,13 +26,18 @@ class Client:
 
     def send(self,data,json_encode=False):
         if json_encode == True:
-            self.socket.send(json.dumps(data))
+            self.socket.send(json.dumps(data).encode())
         else:
             self.socket.send(data.encode('utf-8'))
 
-    def recv(self,jason_encode=False,val=1):
+    def recv(self,json_encode=False,val=1):
         if json_encode != True:
             data = self.socket.recv(2048*val).decode("utf-8")
+            return data
         else:
-            data = json.loads(self.socket.recv(2048*val))
-        return data
+            data = self.socket.recv(2048*val).decode('utf-8')
+            if data != "":
+                new_data = json.loads(data)
+                return new_data
+            else:
+                return "Bad Data"

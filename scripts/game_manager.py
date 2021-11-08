@@ -170,7 +170,9 @@ class Game_manager:
             else:
                 self.hosting = True
                 self.client.send(str(self.hosting))
-                if self.client.recv() == "Send game info":
+                send_data = self.client.recv()
+                print(send_data)
+                if send_data == "Send game info":
                     time.sleep(0.01) # delay sending more of the data
                     self.client.send(game_info,json_encode=True)
                     
@@ -491,7 +493,7 @@ class Game_manager:
     def update_mult_game(self,players,scroll):
         for p_id in players:
             p_pos = players[p_id]["loc"]
-            player = Player(p_pos[0],p_pos[1],16,16,100,3,5,0.3)
+            player = Player(self,p_pos[0],p_pos[1],16,16,100,3,5,0.3)
             player.draw(self.game.display,scroll)
 
     def multi_play(self):
@@ -606,7 +608,9 @@ class Game_manager:
         command = f"move:{self.player.rect.x}:{self.player.rect.y}"
 
         self.client.send(command)
-        self.players,_ = self.client.recv(json_encode=True,val=2)
+        data = self.client.recv(json_encode=True,val=2)
+        if data != "Bad Data":
+            self.players,_ = data
 
         self.game.screen.blit(pygame.transform.scale(self.game.display, self.game.win_dims), (0,0))
         pygame.display.update()   

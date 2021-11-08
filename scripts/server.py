@@ -6,7 +6,7 @@ import random
 import json
 import os
 import time
-
+    
 def setup():
     data = subprocess.run(["ipconfig"],capture_output=True).stdout.decode()#get ip config data as a string
     data_list = data.split("\n")
@@ -23,8 +23,12 @@ server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
 ip = setup()
 MAX_LIMIT = 80
-port = int(input("Please specify port number: "))
 connections = 0
+with open("../data/Game_data/settings.json","r") as file:
+    network_data = json.load(file)["networking"]
+    file.close()
+
+port = network_data["port"]
 
 gamemode = ""
 
@@ -64,17 +68,12 @@ def client(conn,_id):
             command = conn.recv(2048*8).decode('utf-8')
             if command == "get":
                 data = [players,[],_id]
-                conn.send(json.dumps(data))
+                conn.send(json.dumps(data).encode())
             if command.split(':')[0] == "move":
                 pos = [int(command.split(':')[1]),int(command.split(':')[2])]
                 players[_id]["loc"] = pos
                 data = [players,[]]
-                conn.send(json.dumps(data))
-            if command.split(':')[0] == "set_map":
-                path = [command.split(':')[1],command.split(':')[2]]
-                with open(maps_path+path[0]+path[1]+".level", "rb") as file:
-                    level = json.load(file)
-                    file.close()
+                conn.send(json.dumps(data).encode('utf-8'))
             if command == 'quit':
                 break
         except Exception as e:
@@ -95,19 +94,19 @@ while True:
     conn,addr = server.accept()
     print(addr,"connected")
     test_host = conn.recv(1024).decode('utf-8')
-        
+
     if test_host == "True":
         host = _id
         conn.send("Send game info".encode('utf-8'))
-        gamemode,player_limit,spawn_points = json.loads(conn.recv(2048*8))
+        gamemode,player_limit,spawn_points = json.loads(conn.recv(2048*8).decode('utf-8'))
         
-    player_data = json.loads(conn.recv(2048*8))
-    print(f"[SERVER] {player_data['name']} has connected on id: {_id}")
+    player_data = json.loads(conn.recv(2048*8).decode('utf-8'))
     player_data["loc"] = player_spawn()[1]
     players[_id] = player_data
-    conn.send(json.dumps([player_data["loc"],_id]))
+    conn.send(json.dumps([player_data["loc"],_id]).encode())
     connections += 1
 
     p_thread = Thread(target=client,args=(conn,_id))
     p_thread.start()
+    print(f"[SERVER] {player_data['name']} has connected on id: {_id}")
     _id += 1
