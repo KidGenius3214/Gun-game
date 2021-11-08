@@ -24,6 +24,7 @@ class Console:
         self.extra_text = "|"
         self.extra_text_time = 32
         self.text_x = 0
+        self.text_index = 0
 
         self.console_img = pygame.Surface(size)
         self.copy_img = pygame.Surface(size)
@@ -36,6 +37,7 @@ class Console:
         self.messages_img.set_alpha(150)
         
         self.base_y = self.messages_img.get_height()
+        self.pos = [0,0]
 
     def render(self):
         self.copy_img.fill((0,0,0))
@@ -45,11 +47,11 @@ class Console:
 
         self.game.display.blit(self.console_img,(self.x,self.game.display.get_height()-self.console_img.get_height()-4))
         self.game.display.blit(self.messages_img,(self.x,(self.game.display.get_height()-self.console_img.get_height()-5)-self.messages_img.get_height()))
-        self.font.render(self.copy_img,self.command_input + self.extra_text,4-self.text_x,6,(255,255,255))
+        self.font.render(self.copy_img,self.command_input + self.extra_text,4-self.text_x,int(self.copy_img.get_height()/2)-int(self.font.get_size(self.command_input)[1]/2),(255,255,255))
         
         self.game.display.blit(self.copy_img,(self.x,self.game.display.get_height()-self.console_img.get_height()-4))
         for i,message in enumerate(self.messages):
-            self.base_y -= 17
+            self.base_y -= self.font.get_size(message)[1]
             self.font.render(self.messages_img_c,message,1,self.base_y,(255,255,255))
 
         self.base_y = self.messages_img.get_height()
@@ -68,9 +70,13 @@ class Console:
         if event.type == KEYDOWN:
             if event.unicode not in ['\r','\x08','\x1b']:
                 self.command_input += event.unicode
+            if self.font.get_size(self.command_input)[0]+25 > self.console_img.get_width():
+                self.text_x = (self.font.get_size(self.command_input)[0]-self.console_img.get_width())+25
             if event.key == K_ESCAPE:
                 self.command_input = ""
             if event.key == K_BACKSPACE:
+                if self.text_x > 0:
+                    self.text_x = (self.font.get_size(self.command_input)[0]-self.console_img.get_width())+25
                 self.command_input = self.command_input[:-1]
             if event.key == K_RETURN:
                 self.commands.insert(0,self.command_input)
@@ -91,7 +97,7 @@ class Console:
                         item = scripts.Item(self.game.game_manager,int(pos[0]),int(pos[1]),gun_spawn[1],"Guns",self.game.FPS,Gun)
                     else:
                         scroll = self.game.game_manager.camera.scroll
-                        pos = [int(pygame.mouse.get_pos()[0]/2)+scroll[0],int(pygame.mouse.get_pos()[1]/2)+scroll[1]]
+                        pos = [self.game.game_manager.relative_pos[0]+scroll[0],self.game.game_manager.relative_pos[1]+scroll[1]]
                         item = scripts.Item(self.game.game_manager,pos[0],pos[1],gun_spawn[1],"Guns",self.game.FPS,Gun)
 
                     self.game.game_manager.items.append(item)
@@ -113,7 +119,7 @@ class Console:
                         item = scripts.Item(self.game.game_manager,int(pos[0]),int(pos[1]),item_spawn[1],item_group,self.game.FPS,ref_obj)
                     else:
                         scroll = self.game.game_manager.camera.scroll
-                        pos = [int(pygame.mouse.get_pos()[0]/2)+scroll[0],int(pygame.mouse.get_pos()[1]/2)+scroll[1]]
+                        pos =[self.game.game_manager.relative_pos[0]+scroll[0],self.game.game_manager.relative_pos[1]+scroll[1]]
                         item = scripts.Item(self.game.game_manager,pos[0],pos[1],item_spawn[1],item_group,self.game.FPS,ref_obj)
 
                     self.game.game_manager.items.append(item)
@@ -122,5 +128,18 @@ class Console:
                     print(e)
 
                     
-    def change_size(self):
-        pass
+    def change_size(self,size,text_size):
+        self.console_img = pygame.Surface(size)
+        self.copy_img = pygame.Surface(size)
+        self.console_img.fill((54,57,75))
+        self.console_img.set_alpha(150)
+
+        self.messages_img = pygame.Surface((size[0],size[1]*6))
+        self.messages_img_c = pygame.Surface((size[0],size[1]*6))
+        self.messages_img.fill((54,57,75))
+        self.messages_img.set_alpha(150)
+        
+        self.base_y = self.messages_img.get_height()
+
+        self.font = scripts.Text("data/images/font.png",text_size,text_size)
+        

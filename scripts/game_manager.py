@@ -41,6 +41,8 @@ class Game_manager:
         self.shift = False
         self.ctrl = False
         self.show_console = False
+        self.zoom = 1
+        self.zoom_index = 0
         
         #controller stuff
         self.controller_input = self.game.json_h.files["controller_input"]
@@ -77,6 +79,7 @@ class Game_manager:
         for spawn in self.level["spawnpoints"]:
             if spawn[0] == "spawn":
                 self.player.set_pos(spawn[1][0]*self.game.TILESIZE,spawn[1][1]*self.game.TILESIZE)
+                self.camera.update(self.player,self.game.display,1)
         for gun_pos in self.level["guns"]:
             gun = Gun(self,gun_pos[0],self.gun_data[gun_pos[0]],self.game.FPS)
             item = scripts.Item(self,gun_pos[1][0]*self.game.TILESIZE,gun_pos[1][1]*self.game.TILESIZE,gun_pos[0],"Guns",self.game.FPS,gun)
@@ -199,7 +202,10 @@ class Game_manager:
         self.game.display.fill((90,90,90))
         self.clock.tick(self.game.FPS)
         pos = pygame.mouse.get_pos()
-        relative_pos = [int(pos[0]/2), int(pos[1]/2)]
+        size_dif = float(self.game.win_dims[0]/self.game.display.get_width())
+        self.relative_pos = [int(pos[0]/size_dif), int(pos[1]/size_dif)]
+
+        self.game.display = pygame.transform.scale(self.game.display,(round(self.game.display_dims[0]*self.zoom),round(self.game.display_dims[1]*self.zoom)))
 
         self.camera.update(self.player,self.game.display,10)
         
@@ -210,13 +216,17 @@ class Game_manager:
         
         tiles = []
         active_chunks = []
-        angle = find_angle_from_points(relative_pos,self.player.get_center(),scroll,[0,0],False)
+        angle = find_angle_from_points(self.relative_pos,self.player.get_center(),scroll,[0,0],False)
 
         if self.moving_aim_axis == True:
             angle = find_angle_from_points(self.controller_pos,self.player.get_center(),scroll,[0,0],False)
 
-        for y in range(3):
-            for x in range(4):
+        chunk_num = self.game.CHUNKSIZE*self.game.TILESIZE
+        chunk_seen_width = round(self.game.display.get_width()/chunk_num)+2
+        chunk_seen_height = round(self.game.display.get_height()/chunk_num)+2
+        
+        for y in range(chunk_seen_height):
+            for x in range(chunk_seen_width):
                 chunk_x = x-1 + round(scroll[0]/(self.game.CHUNKSIZE*self.game.TILESIZE))
                 chunk_y = y-1 + round(scroll[1]/(self.game.CHUNKSIZE*self.game.TILESIZE))
                 chunk_id = f"{chunk_x}/{chunk_y}"
@@ -426,6 +436,21 @@ class Game_manager:
                     if event.key == K_c:
                         if self.alt_key == True:
                             self.show_console = True
+                    if event.key == K_z:
+                        if self.player.equipped_weapon != None:
+                            if self.player.equipped_weapon.gun_group == "Snipers":
+                                if self.zoom_index < len(self.player.equipped_weapon.zoom_dis):
+                                    self.zoom = self.player.equipped_weapon.zoom_dis[self.zoom_index]
+                                self.zoom_index += 1
+                                if self.zoom_index > len(self.player.equipped_weapon.zoom_dis):
+                                    self.zoom = 1
+                                    self.zoom_index = 0
+
+                                self.console.change_size([round(self.game.display_dims[0]*self.zoom)-round(4*self.zoom),round(25*self.zoom)],2+round(self.zoom+0.1))
+
+                                self.game.display = pygame.transform.scale(self.game.display,(round(self.game.display_dims[0]*self.zoom),round(self.game.display_dims[1]*self.zoom)))
+                                self.camera.update(self.player,self.game.display,1)
+                                
                     if event.key == K_SPACE:
                         if self.player.jump_count < 2:
                             self.player.vel_y = -self.player.jump
@@ -445,7 +470,7 @@ class Game_manager:
                         self.player.equip_weapon()
 
             if event.type == MOUSEMOTION:
-                self.controller_pos = list(relative_pos)
+                self.controller_pos = list(self.relative_pos)
                 self.moving_aim_axis = False
                 pygame.mouse.set_visible(True)
                         
@@ -473,7 +498,7 @@ class Game_manager:
         self.game.display.fill((90,90,90))
         self.clock.tick(self.game.FPS)
         pos = pygame.mouse.get_pos()
-        relative_pos = [int(pos[0]//2), int(pos[1]//2)]
+        self.relative_pos = [int(pos[0]//2), int(pos[1]//2)]
 
         self.camera.update(self.player,self.game.display,10)
         
@@ -484,7 +509,7 @@ class Game_manager:
         
         tiles = []
         active_chunks = []
-        angle = -find_angle_from_points(relative_pos, self.player.get_center(), scroll, [0,0],True)
+        angle = -find_angle_from_points(self.relative_pos, self.player.get_center(), scroll, [0,0],True)
         for y in range(3):
             for x in range(4):
                 chunk_x = x-1 + round(scroll[0]/(self.game.CHUNKSIZE*self.game.TILESIZE))

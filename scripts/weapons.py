@@ -56,6 +56,9 @@ class Gun:
         if self.gun in self.game.gun_data["Snipers"]:
             self.gun_group = "Snipers"
             
+        if self.gun_group == "Snipers":
+            self.zoom_dis = self.gun_info["zoom_distances"]
+            
         self.ammo = gun_info["ammo"]
         self.ammo_l = gun_info["ammo_loaded"]
         self.speed = gun_info["speed"]
