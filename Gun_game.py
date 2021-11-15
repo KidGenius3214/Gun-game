@@ -6,7 +6,6 @@ from scripts import *
 import sys
 pygame.init()
 
-
 class Game:
     def __init__(self,win_dims,display_dims,FPS):
         self.win_dims = win_dims
@@ -26,6 +25,8 @@ class Game:
         self.tile_data = self.json_h.load("data/Game_data/tile_data.json","tile_data")
         self.item_info = self.json_h.load("data/Game_data/item_info.json","item_data")
         self.ammo_data = self.json_h.load("data/Game_data/ammo_info.json","ammo_data")
+        self.consumable_data = self.json_h.load("data/Game_data/consumables.json","consumable_data")
+        self.settings = self.json_h.load("data/Game_data/settings.json","settings")
 
         #images
         # Zone 1 images
@@ -46,6 +47,7 @@ class Game:
         self.zone1_tiles["park_bench"] = self.img_m.load("data/images/zone1_tileset/park_bench.png",(255,255,255))
             
         self.controller_cursor = self.img_m.load("data/images/cursor.png", (255,255,255))
+        self.health_bar_img = self.img_m.load('data/images/Health_Bar.png',(255,255,255))
 
         self.tiles = {"zone1":self.zone1_tiles}
         self.menu_manager = Menu(self)

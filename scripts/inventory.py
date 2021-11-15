@@ -3,6 +3,7 @@
 class Inventory:
     def __init__(self,size):
         self.inventory = {}
+        self.size = size
         for i in range(size):
             self.inventory[i] = []
 
@@ -34,6 +35,9 @@ class Inventory:
                 free_slots.append(slot)
 
         return free_slots
+
+    def get_all_items(self):
+        return self.inventory           
 
     def clear(self):
         self.inventory = {}

@@ -11,11 +11,11 @@ from pygame.locals import *
 
 
 class Console:
-    def __init__(self,game,size,server_mode=False):
+    def __init__(self,game,size,client=None):
         self.game = game
         self.x = 2
 
-        self.server_mode = server_mode
+        self.client = client
         self.commands = []
         self.messages = []
         self.p_index = 0
@@ -80,11 +80,45 @@ class Console:
                 self.command_input = self.command_input[:-1]
             if event.key == K_RETURN:
                 self.commands.insert(0,self.command_input)
+                if self.client != None:
+                    self.client.send(self.command_input)
                 self.run_command(self.command_input)
                 self.command_input = ""
 
     def run_command(self,command):
-        if "spawn" in command:
+        if command == "revive":
+            self.game.game_manager.player.alive = True
+            self.game.game_manager.player.health = 100
+            self.messages.insert(0,"Revived Player")
+
+        if command.split(' ')[0] == "clear":
+            c = command.split(" ")
+            if len(c) == 1:
+                self.game.game_manager.player.inventory.clear()
+                self.game.game_manager.player.equipped_weapon = None
+
+        if command.split(" ")[0] == 'give':
+            c = command.split(" ")
+            if c[1] == "health":
+                self.game.game_manager.player.add_health(int(command[2]))
+                self.messages.insert(0,f"Gave player {command[2]} health")
+
+        if command.split(" ")[0] == 'kill':
+            c = command.split(" ")
+            if c[1] == 'all':
+                self.game.game_manager.items = []
+                self.game.game_manager.entities = []
+                self.messages.insert(0,"Killed everything")
+            if c[1] == 'entities':
+                self.game.game_manager.entities = []
+                self.messages.insert(0,"Killed all entities")
+            if c[1] == 'items':
+                self.game.game_manager.items = []
+                self.messages.insert(0,"Killed all items")
+            if ':' in c[1]:
+                pass
+        
+        if command.split(" ")[0] == 'spawn':
             command = command.split(" ")
             if "gun" in command[1]:
                 gun_spawn = command[1].split(":")
@@ -127,6 +161,22 @@ class Console:
                 except Exception as e:
                     print(e)
 
+            if "consumable" in command[1]:
+                item_spawn = command[1].split(":")
+                try:
+                    item_spawn[1] = item_spawn[1].replace('_', ' ')
+                    if len(command) == 3:
+                        pos = command[2].split(';')
+                        item = scripts.Consumable(self.game.game_manager,int(pos[0]),int(pos[1]),item_spawn[1])
+                    else:
+                        scroll = self.game.game_manager.camera.scroll
+                        pos = [self.game.game_manager.relative_pos[0]+scroll[0],self.game.game_manager.relative_pos[1]+scroll[1]]
+                        item = scripts.Consumable(self.game.game_manager,int(pos[0]),int(pos[1]),item_spawn[1])
+                        
+                    self.game.game_manager.items.append(item)
+                    self.messages.insert(0,f"Spawned {item_spawn[1]} at {pos}")
+                except Exception as e:
+                    print(e)
                     
     def change_size(self,size,text_size):
         self.console_img = pygame.Surface(size)

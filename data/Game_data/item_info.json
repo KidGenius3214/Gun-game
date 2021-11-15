@@ -1,15 +1,22 @@
-{"Guns":
-    {"Revolver":["data/images/guns/revolver.png",1.8,1],
-         "P90":["data/images/guns/P90.png",3.5,3],
-         "Aug":["data/images/guns/AUG.png",3.5,3],
-         "Famas":["data/images/guns/Famas.png",2.5,3], 
-         "Pump Shotgun":["data/images/guns/Pump_shotgun.png",4,2], 
-         "Desert Eagle":["data/images/guns/Desert_eagle.png",2.6,1], 
-         "Gold Desert Eagle":["data/images/guns/Desert_eagle_gold.png",2.6,1],
-         "N83":["data/images/guns/N83.png",4.3,3]
+{
+"Guns":
+	{"Revolver":["data/images/guns/revolver.png",1.8,1,false],
+         "P90":["data/images/guns/P90.png",3.5,3,false],
+         "Aug":["data/images/guns/AUG.png",3.5,3,false],
+         "Famas":["data/images/guns/Famas.png",2.5,3,false], 
+         "Pump Shotgun":["data/images/guns/Pump_shotgun.png",4,2,false], 
+         "Desert Eagle":["data/images/guns/Desert_eagle.png",2.6,1,false], 
+         "Gold Desert Eagle":["data/images/guns/Desert_eagle_gold.png",2.6,1,false],
+         "N83":["data/images/guns/N83.png",4.3,3,false]
     },
- "Ammo":
-    {"Pistol Ammo":["data/images/items/pistol_ammo.png",1.8,1], 
-     "Shotgun Ammo":["data/images/items/shotgun_ammo.png",1.8,1] 
-    }
+"Ammo":
+	{"Pistol Ammo":["data/images/items/pistol_ammo.png",1.8,1,false], 
+     	"Shotgun Ammo":["data/images/items/shotgun_ammo.png",1.8,1,false] 
+    	},
+"Consumables":
+    	{"Needle":["data/images/consumables/needle.png",2,1,false],
+     	"Health Jar":["health_jar",3,1,true,[5,7,6,5,6,5,5,8,5,7,6,5,6,5,5,8]],
+	"Med Kit":["data/images/consumables/med_kit.png",4,2,false],
+	"Bottle o' Shield":["data/images/consumables/bottle_o_shield.png",2.3,1,false]
+    	}
 }

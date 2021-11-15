@@ -42,6 +42,12 @@ def find_angle_from_points(point1,point2,scroll,offset,degrees):
     else:
         return math.degrees(math.atan2(point1[1] - (int(point2[1])-scroll[1] + offset[1]), point1[0] - (int(point2[0])-scroll[0] + offset[0])))
 
+def normalize_vec(vec):
+    # get the magnitude
+    mag = math.sqrt( (vec[0])**2 + (vec[1])**2 )
+    new_vec = [ vec[0]/mag, vec[1]/mag ]
+    return new_vec
+
 #Image manager
 class Image_Manager:
     def __init__(self, valid_formats):
@@ -367,17 +373,34 @@ class Animation:
     def __init__(self):
         self.anim_database = {}
         self.frames = {}
+        self.frame_count = 0
+        self.image = None
+        self.states = []
 
     def load_anim(self, anim_key, folder, ext, frame_duration,colorkey=None):
         img_id = folder.split('/')[-1]
-        self.anim_database[anim_key] = {img_id: {}}
-        self.frames[anim_key] = {img_id: []}
+        self.anim_database[anim_key] = {}
+        self.frames[anim_key] = []
+        self.states.append(anim_key)
         for i in range(len(frame_duration)):
             path = f"{folder}/{img_id}_{i}.{ext}"
             img = pygame.image.load(path).convert()
             if colorkey != None:
                 img.set_colorkey(colorkey)
-                self.anim_database[anim_key][img_id][path.split('/')[-1].split('.')[0]] = img
+                self.anim_database[anim_key][path.split('/')[-1].split('.')[0]] = img
             for i in range(frame_duration[i]):
-                self.frames[anim_key][img_id].append(path.split('/')[-1].split('.')[0])
+                self.frames[anim_key].append(path.split('/')[-1].split('.')[0])
+
+        frame = self.frames[self.states[0]][0]
+        self.image = self.anim_database[self.states[0]][frame]
+
+        
+    def animate(self,state,return_img=False):
+        self.frame_count += 1
+        if self.frame_count >= len(self.frames[state]):
+            self.frame_count = 0
+        frame_name = self.frames[state][self.frame_count]
+        self.image = self.anim_database[state][frame_name]
+        if return_img != False:
+            return self.image
         

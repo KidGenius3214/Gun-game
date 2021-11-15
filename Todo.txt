@@ -1,0 +1,15 @@
+Add A Bow and arrows
+Have a smart AI enemy that can shoot
+work on melee weapons
+more consumables:
+-Food:
+--fries,burger,chicken_drumstick
+work on multiplayer
+add enemy spawing
+work on item physics
+Work on park city background
+Work on Game GUI
+Add the Card System (Powerups,buffs,weapon upgrades, weapon descriptions)
+work on gun upgrading system
+work on in game money system
+Add the first game mode to multiplayer

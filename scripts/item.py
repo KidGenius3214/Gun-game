@@ -13,7 +13,14 @@ class Item:
         self.y = y
         self.item_name = item_name
         self.item_group = item_group
-        self.img = pygame.image.load(item_info[item_group][item_name][0]).convert()
+        self.animate = item_info[item_group][item_name][3]
+        if self.animate == True:
+            self.animations = scripts.Animation()
+            path = item_info[item_group][item_name][0]
+            self.animations.load_anim("idle",f"data/images/animations/{path}/idle","png",item_info[item_group][item_name][4],(255,255,255))
+            self.img = self.animations.image
+        else:
+            self.img = pygame.image.load(item_info[item_group][item_name][0]).convert()
         self.img.set_colorkey((255,255,255))
         self.width = self.img.get_width()
         self.height = self.img.get_height()
@@ -22,12 +29,12 @@ class Item:
         self.grounded = False
         self.collisions = {"right":False,"left":False,"top":False,"bottom":False}
         self.physics_obj = scripts.Physics(self.rect.x,self.rect.y,self.rect.width,self.rect.height)
+        self.vel_y = 0
+        self.grav = 0.3
         self.timer = 45
-        self.hover = 45
-        self.gravity = 1
-        self.direction = 0.13
         self.step = 1
         self.FPS = FPS
+        self.movement = [0,0]
         #light/line streak animation
         self.s_count = 0
         self.index = 0
@@ -39,36 +46,28 @@ class Item:
     def del_ref_obj(self,obj):
         self.ref_obj = None
 
-    def bobbing(self,movement):
-        self.hover -= 1
-        if self.hover < 0:
-            self.direction = -self.direction
-            self.hover = 45
-        movement[1] = self.direction
+    def move(self,tiles):
+        self.movement = [0,0]
 
-    def movement(self,tiles):
-        movement = [0,self.gravity]
-
-        self.gravity += 0.01
-        if self.gravity > 4.5:
-            self.gravity = 4.5
-
-        if self.grounded == False:
-            if self.collisions["top"] == True or self.collisions["bottom"] == True:
-                self.grounded = True
-
-        if self.grounded == True:
-            self.bobbing(movement)
+        self.movement[1] += self.vel_y
+        self.vel_y += self.grav
+            
+        if self.vel_y > 20:
+            self.vel_y = 20
         
-        self.collisions = self.physics_obj.movement(movement,tiles)
+        self.collisions = self.physics_obj.movement(self.movement,tiles)
         self.rect = self.physics_obj.rect
         self.x = self.rect.x
         self.y = self.rect.y
 
     def render(self,surf,scroll):
+        if self.animate == True:
+            self.img = self.animations.animate('idle',True)
+        
         scripts.perfect_outline(self.img,surf,[self.rect.x-scroll[0],self.rect.y-scroll[1]],(255,255,255),(255,255,255)) #outline the item
         
         surf.blit(self.img,(self.rect.x-scroll[0],self.rect.y-scroll[1]))
+        
 
         # light/line streak animation on the item
         blank_surf = pygame.Surface((self.rect.width,self.rect.height)) # blank surface
@@ -76,7 +75,7 @@ class Item:
         mask_array = pygame.PixelArray(blank_surf) # array to handle pixels in an organised way
         overlay_array = [] # spots to modify pixels(will match the color of the outline color)
         offset = 0
-        for i in range(blank_surf.get_width()):
+        for i in range(blank_surf.get_height()):
             for j in range(item_info[self.item_group][self.item_name][2]):
                 loc = [((j+self.index)+offset)+self.s_count,i] # calculate light streak spot
                 overlay_array.append(loc)

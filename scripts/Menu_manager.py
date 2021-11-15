@@ -2,14 +2,25 @@
 import pygame
 pygame.init()
 from . import *
-import sys,pickle
+import socket,threading,json
+import sys,pickle,subprocess
+
+def get_wifi_ip():
+    data = subprocess.run(["ipconfig"],capture_output=True).stdout.decode() #get ipconfig data as a string
+    data_list = data.split("\n")
+    index = data_list[data_list.index("Wireless LAN adapter Wi-Fi:\r")+2].lstrip()
+    if index == "Media State . . . . . . . . . . . : Media disconnected\r":
+        ip = ""
+    else:
+        ip = data_list[data_list.index("Wireless LAN adapter Wi-Fi:\r")+4].lstrip().split("IPv4 Address. . . . . . . . . . . : ")[1].split("\r")[0] # get ip when connected to wifi
+    return ip
 
 class Menu:
     def __init__(self, game):
         self.state = "Menu"
         self.game = game
         self.clicked = False
-        self.click_tick = 50
+        self.click_tick = 30
 
         #Main menu screen
         self.play_button = Button(30, 35, 2, "SinglePlayer", 4,"Big", True)
@@ -21,11 +32,30 @@ class Menu:
         self.Online_btn = Button(275,70,3,"Online",5,"Big",True)
         self.Host_btn = Button(45,70,3,"Host",5,"small",True)
         self.Join_btn = Button(275,70,3,"Join",5,"small",True)
-        self.real_join = Button(45,70,3,"Join",5,"small",True)
-        self.ip_addr = Text_Input(15,20,3,1,20)
-        self.port_num = Text_Input(15,45,3,1,10)
+        self.port = self.game.settings["networking"]["port"]
         self.clock = pygame.time.Clock()
-        
+        self.games = []
+        self.udp_sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+        self.udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+    def find_games(self):
+        while True:
+            self.games = []
+            for i in range(257):
+                try:
+                    if self.search_ip != "":
+                        ip = self.search_ip.split('.')
+                        host = f"{ip[0]}.{ip[1]}.{ip[2]}.{i}"
+                        self.udp_sock.sendto(b"Find Server",(host,self.port))
+                except Exception as e:
+                    break
+            
+            try:
+                data,addr = self.udp_sock.recvfrom(2048*8)
+                self.games.append(json.loads(data.decode('utf-8')))
+            except:
+                pass          
+    
     def run(self):
         self.game.display.fill((90,90,90))
         self.clock.tick(self.game.FPS)
@@ -33,9 +63,6 @@ class Menu:
         pos = [int(pos[0]//2), int(pos[1]//2)]
 
         for event in pygame.event.get():
-            if self.state == "Join_screen":
-                self.ip_addr.get_event(event)
-                self.port_num.get_event(event)
             if event.type == pygame.QUIT:
                 pygame.quit()
                 sys.exit()
@@ -83,39 +110,53 @@ class Menu:
 
             if self.Host_btn.clicked == True and self.clicked == False:
                 self.game.create_game_manager("Multiplayer")
+                #subprocess.run(["python", "scripts/", "server.py"])
+                map_name = "Debug_level_0"
+                map_type = "Normal"
+                data = None
                 game_info = ["Classic",12,[]]
+                
+                try:
+                    with open(f"data/maps/{map_name}.level","rb") as file:
+                        data = pickle.load(file)
+                        file.close()
+                        game_info[2] = data["data"]["spawnpoints"]
+                except:
+                    with open(f"data/maps/custom_maps/{map_name}.level","rb") as file:
+                        data = pickle.load(file)
+                        file.close()
+                        game_info[2] = data["data"]["spawnpoints"]
+                    map_type = "Custom"
 
-                with open("data/maps/Debug_level_0.level","rb") as file:
-                    data = pickle.load(file)
-                    file.close()
-                    game_info[2] = data["data"]["spawnpoints"]
-                    del data
+                game_info.append(map_type)
+                items = []
+                for item in data["data"]["guns"]:
+                    items.append([item,"Guns"])
 
-                self.game.game_manager.setup_mult(True,5555,"0", game_info)
+                game_info.append(items)
+                game_info.append(map_name)
+
+                self.game.game_manager.setup_mult(True,self.port,"0", game_info)
                 self.game.state = "Play"
                 self.clicked = True
                 
             if self.Join_btn.clicked == True and self.clicked == False:
+                self.search_ip = get_wifi_ip()
+                f_game_thread = threading.Thread(target=self.find_games, name="find_servers")
+                f_game_thread.start()
                 self.game.create_game_manager("Multiplayer")
-                self.state = 'Join_screen'
+                self.game.game_manager.setup_mult(False,5555,"192.168.43.232")
+                self.game.state = 'Play'
                 self.clicked = True
                 
         if self.state == "Join_screen":
-            self.ip_addr.update(self.game.display,pos)
-            self.port_num.update(self.game.display,pos)
-            self.real_join.update(self.game.display,pos)
-
-            ip = self.ip_addr.text
-
-            if self.real_join.clicked == True and self.clicked == False:
-                self.game.game_manager.setup_mult(False,int(self.port_num.text),ip)
-                self.game.state = "Play"
+            self.Host_btn.update(self.game.display, pos)
 
         if self.clicked == True:
             self.click_tick -= 1
             if self.click_tick <= 0:
                 self.clicked = False
-                self.click_tick = 50
+                self.click_tick = 30
 
         self.game.screen.blit(pygame.transform.scale(self.game.display, self.game.win_dims), (0,0))
         pygame.display.update()

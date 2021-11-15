@@ -9,4 +9,5 @@ from .weapons import *
 from .inventory import *
 from .item import *
 from .enemy import *
-from .console import * 
+from .console import *
+from .consumable import *

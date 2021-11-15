@@ -1,0 +1,9 @@
+{
+  "Needle":[10,false],
+  "Health Jar":[25,false],
+  "Med Kit":[75,false],
+
+  "Bottle o' Shield":[35,true],
+  "Body Armor":[100,true],
+  "Body Armor+":[150,true]
+}

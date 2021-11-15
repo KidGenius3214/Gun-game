@@ -62,7 +62,6 @@ class Gun:
         self.ammo = gun_info["ammo"]
         self.ammo_l = gun_info["ammo_loaded"]
         self.speed = gun_info["speed"]
-        self.ammo -= self.ammo_l
         self.dmg = gun_info["damage"]
         self.crit_rate = gun_info["crit_rate"]
         self.shot = False
