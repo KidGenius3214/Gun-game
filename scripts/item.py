@@ -24,11 +24,11 @@ class Item:
         self.img.set_colorkey((255,255,255))
         self.width = self.img.get_width()
         self.height = self.img.get_height()
-        self.rect = pygame.Rect(self.x,self.y,self.width,self.height+4)
+        self.rect = pygame.Rect(self.x,self.y,self.width,self.height)
         self.ref_obj = reference_obj
         self.grounded = False
         self.collisions = {"right":False,"left":False,"top":False,"bottom":False}
-        self.physics_obj = scripts.Physics(self.rect.x,self.rect.y,self.rect.width,self.rect.height)
+        self.physics_obj = scripts.Physics(self.rect.x,self.rect.y,self.rect.width,self.rect.height+2)
         self.vel_y = 0
         self.grav = 0.3
         self.timer = 45

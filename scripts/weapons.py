@@ -67,7 +67,7 @@ class Gun:
         self.shot = False
         self.reload_gun = False
         self.has_ammo = True
-        self.flip = True
+        self.flip = False
         self.crit_dmg = gun_info["crit_dmg"]
         self.render_offset = gun_info["render_offset"]
         self.bullet_size = gun_info["bullet_size"]

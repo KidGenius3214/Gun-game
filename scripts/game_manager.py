@@ -311,6 +311,9 @@ class Game_manager:
                     if item.item_group in ["Guns"]:
                         if self.player.add_weapon_item(item) == True:
                             item_remove_list.append(n)
+                            if self.player.weapon_count == 0:
+                                self.player.weapon_index = 0
+                                self.player.equip_weapon()
                     if item.item_group == "Ammo":
                         self.player.add_ammo(item,item_remove_list,n)
                 if isinstance(item,scripts.Consumable):
@@ -352,6 +355,11 @@ class Game_manager:
         self.player.draw(self.game.display, scroll)
 
         if self.player.equipped_weapon != None:
+            x = self.relative_pos[0]+scroll[0]
+            if x < self.player.get_center()[0]:
+                self.player.equipped_weapon.flip = True
+            else:
+                self.player.equipped_weapon.flip = False
             self.player.equipped_weapon.update(self.game.display,scroll,[self.player.get_center()[0],self.player.get_center()[1]],math.degrees(-angle))
             if pygame.mouse.get_pressed()[0] == True:
                 self.player.equipped_weapon.shoot(self.bullets,"player",[self.player.get_center()[0],self.player.get_center()[1]],angle)
@@ -523,14 +531,25 @@ class Game_manager:
                             self.player.wall_jump_count += 1
                         
                     if event.key == K_0:
+                        before_i = self.player.weapon_index
                         self.player.weapon_index = 0
-                        self.player.equip_weapon()
+                        if self.player.equip_weapon() == False:
+                            self.player.weapon_index = before_i
                     if event.key == K_1:
-                        self.player.weapon_index = 1
-                        self.player.equip_weapon()
+                       before_i = self.player.weapon_index
+                       self.player.weapon_index = 1
+                       if self.player.equip_weapon() == False:
+                           self.player.weapon_index = before_i
                     if event.key == K_2:
+                        before_i = self.player.weapon_index
                         self.player.weapon_index = 2
-                        self.player.equip_weapon()
+                        if self.player.equip_weapon() == False:
+                            self.player.weapon_index = before_i
+                    if event.key == K_3:
+                        before_i = self.player.weapon_index
+                        self.player.weapon_index = 3
+                        if self.player.equip_weapon() == False:
+                            self.player.weapon_index = before_i
 
             if event.type == MOUSEMOTION:
                 self.controller_pos = list(self.relative_pos)
