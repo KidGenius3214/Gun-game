@@ -1,6 +1,6 @@
 import pygame
 import scripts
-import math
+import math,random
 
 
 class Base_Enemy(scripts.Entity):
@@ -15,11 +15,10 @@ class Base_Enemy(scripts.Entity):
         #Health management
         self.health = health
         self.hurt = False
-        self.dmg_timer = 4
+        self.dmg_timer = 1
         self.alive = self.health > 0
 
         self.state = "Idle"
-        self.action = "Stand"
 
         self.image.fill((255,0,0))
 
@@ -47,13 +46,20 @@ class Base_Enemy(scripts.Entity):
             self.hurt = True
             if self.health <= 0:
                 self.health = 0
+
+    def states(self):
+        """
+        Just a little state machine function
+        Meant to be overridden
+        """
+        pass
                 
     def update(self):
         #update some stuff in the class
         if self.hurt == True:
             self.dmg_timer -= 1
             if self.dmg_timer <= 0:
-                self.dmg_timer = 4
+                self.dmg_timer = 1
                 self.hurt = 0
 
         if self.health <= 0:
@@ -65,6 +71,12 @@ class Bad_Guy(Base_Enemy):
 
         self.vision = pygame.Rect(self.rect.x,self.rect.y,120,10)
         self.id = "Bad_Guy"
+
+        #Ai Stuff
+        self.state = "Idle"
+        self.walk_timer = 45
+        self.walk = False
+        self.vision = pygame.Rect(0,0,0,0)
         
         #wall jump stuff
         self.wall_jump_true = False
@@ -90,6 +102,8 @@ class Bad_Guy(Base_Enemy):
         if self.vel_y > self.g_limit:
             self.vel_y = self.g_limit
 
+        self.states(movement)
+
         self.angle_to_target = scripts.find_angle_from_points(target.get_center(), self.get_center(), [0,0], [0,0], False)
 
         self.collisions = self.physics_obj.movement(movement,tiles)
@@ -98,6 +112,22 @@ class Bad_Guy(Base_Enemy):
 
         if self.collisions["bottom"] == True:
             self.vel_y = 1
+
+    def states(self,movement):
+        if self.state == "Idle":
+            if random.random() > 0.5:
+                self.walk = True
+                self.right = True
+                self.vision = pygame.Rect(*self.get_center(),20,10)
+            else:
+                self.walk = True
+                self.left = True
+
+            if self.walk == True:
+                self.walk_timer -= 1
+                if self.walk_timer <= 0:
+                    self.walk_timer = random.randint(20,150)
+                    self.walk = False
 
     def shoot(self):
         pass

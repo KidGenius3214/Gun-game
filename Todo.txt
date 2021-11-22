@@ -1,9 +1,9 @@
-Add A Bow and arrows
+Add A Bow
+Add gun changing
 Have a smart AI enemy that can shoot
 work on melee weapons
 more consumables:
--Food:
---fries,burger,chicken_drumstick
+More food
 work on multiplayer
 add enemy spawing
 work on item physics
@@ -13,3 +13,4 @@ Add the Card System (Powerups,buffs,weapon upgrades, weapon descriptions)
 work on gun upgrading system
 work on in game money system
 Add the first game mode to multiplayer
+Add a Co-op

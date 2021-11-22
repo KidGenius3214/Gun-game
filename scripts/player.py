@@ -17,6 +17,7 @@ class Player(scripts.Entity):
         self.has_jumped = False
         self.jump_count = 0
         self.flip = False
+        self.id = 'Player'
 
         #Health management
         self.health = health
@@ -44,7 +45,6 @@ class Player(scripts.Entity):
         # Inventory stuff
         # First 4 slots are where the weapons are stored
         self.inventory = scripts.Inventory(7)
-        self.weapon_count = 0
 
     def add_weapon_item(self,item): #add weapons
         free_slots = self.inventory.free_slots()
@@ -60,7 +60,6 @@ class Player(scripts.Entity):
         item_valid = len(self.inventory.get_item(self.weapon_index)) != 0
         if item_valid == True:
             self.equipped_weapon = self.inventory.get_item(self.weapon_index)[0].ref_obj
-            self.weapon_count += 1
         else:
             return False
 
@@ -128,6 +127,23 @@ class Player(scripts.Entity):
                 self.hurt = True
                 if self.shield < 0:
                     self.shield = 0
+
+    def drop_weapon(self):
+        if self.equipped_weapon != None:
+            item = self.inventory.remove_item(self.weapon_index,return_item=True)[0]
+            item.vel_y = 0
+            item.dropped = True
+            pos = self.get_center()
+            pos[1] -= item.rect.width//2
+            item.set_pos(pos)
+            if self.flip == False:
+                item.movement[0] = 10
+                item.movement[1] = -2
+            else:
+                item.movement[0] = -10
+                item.movement[1] = -2
+            self.game.items.append(item)
+            self.equipped_weapon = None
 
     def add_health(self,amount):
         self.health += amount

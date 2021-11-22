@@ -238,6 +238,7 @@ class Entity:
         self.y = y
         self.w = width
         self.h = height
+        self.id = ''
         self.rect = pygame.Rect(self.x,self.y,self.w,self.h)
         self.physics_obj = Physics(self.rect.x,self.rect.y,self.rect.width,self.rect.height)
         self.collisions = {"top":False,"bottom":False,"right":False,"left":False}
@@ -335,7 +336,7 @@ class Text:
         self.load_font()
 
     def load_font(self):
-        Font_Order = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','.','-',',',':','+','\'','!','?','0','1','2','3','4','5','6','7','8','9','(',')','/','_','=','\\','[',']','*','"','<','>',';', ' ', '|', '%', "&"]
+        Font_Order = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','.','-',',',':','+','\'','!','?','0','1','2','3','4','5','6','7','8','9','(',')','/','_','=','\\','[',']','*','"','<','>',';','|', '%', '&',"/i"]
         font_image = pygame.image.load(self.font_image).convert()
         character_count = 0
         current_char_width = 0
@@ -353,18 +354,27 @@ class Text:
     def render(self,surf, text, x, y, color=None):
         spacing = 0
         y_offset = 0
-        for char in text:
+        for index,char in enumerate(text):
             if color != None:
-                char_img = swap_color(self.font[char], (255,0,0), color)
+                if char not in [' ']:
+                    char_img = swap_color(self.font[char], (255,0,0), color)
             else:
-                char_img = self.font[char]
-            surf.blit(char_img, (x+spacing, y+y_offset))
-            spacing += self.font[char].get_width() + self.spacing
+                if char not in [' ']:
+                    char_img = self.font[char]
+            if char not in [' ']:
+                surf.blit(char_img, (x+spacing, y+y_offset))
+            if char != ' ':
+                spacing += self.font[char].get_width() + self.spacing
+            else:
+                spacing += self.font['A'].get_width()
 
     def get_size(self,text):
         width = 0
         for char in text:
-            width += self.font[char].get_width()
+            if char != ' ':
+                width += self.font[char].get_width()
+            else:
+                width += self.font['A'].get_width()
         height = self.font['A'].get_height()
         width += (len(text)-1)*self.spacing
         return [width, height]

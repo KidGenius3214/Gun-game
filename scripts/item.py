@@ -30,11 +30,13 @@ class Item:
         self.collisions = {"right":False,"left":False,"top":False,"bottom":False}
         self.physics_obj = scripts.Physics(self.rect.x,self.rect.y,self.rect.width,self.rect.height+2)
         self.vel_y = 0
-        self.grav = 0.3
+        self.grav = 0.2
         self.timer = 45
         self.step = 1
         self.FPS = FPS
         self.movement = [0,0]
+        self.dropped = False
+        self.drop_timer = 45
         #light/line streak animation
         self.s_count = 0
         self.index = 0
@@ -47,18 +49,31 @@ class Item:
         self.ref_obj = None
 
     def move(self,tiles):
-        self.movement = [0,0]
+        if self.dropped != True:
+            self.movement = [0,0]
 
         self.movement[1] += self.vel_y
         self.vel_y += self.grav
             
-        if self.vel_y > 20:
-            self.vel_y = 20
+        if self.vel_y > 10:
+            self.vel_y = 10
         
         self.collisions = self.physics_obj.movement(self.movement,tiles)
         self.rect = self.physics_obj.rect
         self.x = self.rect.x
         self.y = self.rect.y
+
+        if self.collisions["bottom"] == True:
+            self.grounded = True
+            self.dropped = False
+
+        if self.collisions["top"] == True:
+            self.vel_y = 2
+            self.movement[1] += 0.3
+
+        if (self.collisions['right'] == True) or (self.collisions['left']):
+            self.movement[0] = 0
+        
 
     def render(self,surf,scroll):
         if self.animate == True:
@@ -101,6 +116,15 @@ class Item:
             self.count = 0
             self.index = 0
             self.streak_time = item_info[self.item_group][self.item_name][1]*self.FPS
+
+    def set_pos(self,pos):
+        self.rect.x,self.rect.y = pos
+        self.physics_obj.x,self.physics_obj.y = pos
+
+    def get_center(self):
+        center_x = self.rect.x+int(self.rect.width/2)
+        center_y = self.rect.y+int(self.rect.height/2)
+        return [center_x, center_y]
 
     def update(self,surf,scroll,tiles):
         self.movement(tiles)

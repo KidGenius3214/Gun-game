@@ -5,13 +5,15 @@ from . import *
 import math,random
 
 class Bullet:
-    def __init__(self,x,y,speed,angle,color,dmg,owner,mult,lifetime,img=None):
+    def __init__(self,x,y,speed,angle,color,dmg,owner,mult,lifetime,img=None,gravity=0):
         self.x = x
         self.y = y
         self.speed = speed
         self.angle = angle
         self.color = color
         self.dmg = dmg
+        self.grav = gravity
+        self.initial_vel_y = math.sin(self.angle)*self.speed
         self.owner = owner
         self.mult = mult
         self.lifetime = lifetime
@@ -23,20 +25,23 @@ class Bullet:
 
     def run(self,surf,scroll,rects=None):
         self.x += math.cos(self.angle)*self.speed
-        self.y += math.sin(self.angle)*self.speed
+        if self.grav == 0:
+            self.y += math.sin(self.angle)*self.speed
+        else:
+            self.y += self.initial_vel_y
+            self.initial_vel_y += self.grav
         self.lifetime -= 1
         if self.img != None:
-            blit_center(surf,pygame.transform.rotate(self.img,-self.angle),[self.rect.x-scroll[0],self.rect.y-scroll[1]])
+            blit_center(surf,pygame.transform.rotate(self.img,math.degrees(-self.angle)),[self.rect.x-scroll[0],self.rect.y-scroll[1]])
         else:
             pygame.draw.line(surf,self.color,(self.x-scroll[0],self.y-scroll[1]),(self.x+math.cos(self.angle)*self.mult[0]-scroll[0],
-                                                                                    self.y+math.sin(self.angle)*self.mult[0]-scroll[1]),self.mult[1])
+                                                                                self.y+math.sin(self.angle)*self.mult[0]-scroll[1]),self.mult[1])
         self.rect.x,self.rect.y = self.x,self.y
 
         if rects != None:
             for rect in rects:
                 if rect.colliderect(self.rect):
                     return "Collided"
-
 
 class Gun:
     def __init__(self,game,gun,gun_info,FPS):
@@ -55,6 +60,8 @@ class Gun:
             self.gun_group = "Rifles"
         if self.gun in self.game.gun_data["Snipers"]:
             self.gun_group = "Snipers"
+        if self.gun in self.game.gun_data["Bows"]:
+            self.gun_group = "Bows"
             
         if self.gun_group == "Snipers":
             self.zoom_dis = self.gun_info["zoom_distances"]
@@ -84,8 +91,12 @@ class Gun:
                 dmg = self.dmg
                 if random.randint(1,100) <= self.crit_rate:
                     dmg = random.randint(self.crit_dmg[0],self.crit_dmg[1])
-                
-                bullet_list.append(Bullet(pos[0],pos[1],self.speed,angle,(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img))
+
+                if self.gun_group != "Bows":
+                    bullet_list.append(Bullet(pos[0],pos[1],self.speed,angle,(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img))
+                else:
+                    bullet_list.append(Bullet(pos[0],pos[1],self.speed,angle,(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img,self.gun_info["b_grav"]))
+                    
                 self.ammo_l -= 1
                 self.shot = True
 
@@ -100,8 +111,8 @@ class Gun:
                     dmg = self.dmg
                     if random.randint(1,100) <= self.crit_rate:
                         dmg = random.randint(self.crit_dmg[0],self.crit_dmg[1])
-                    
-                    bullet_list.append(Bullet(pos[0],pos[1],self.speed,angle+random.uniform(-0.2,0.2),(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img))
+
+                    bullet_list.append(Bullet(pos[0]+self.render_offset[0],pos[1]+self.render_offset[1],self.speed,angle+random.uniform(-0.2,0.2),(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img))
                     
                 self.ammo_l -= 1
                 self.shot = True
@@ -115,7 +126,7 @@ class Gun:
     def render(self,surf,scroll,pos,angle):
         blit_center(surf,pygame.transform.rotate(pygame.transform.flip(self.gun_img, False, self.flip),angle),[(pos[0]+self.render_offset[0])-scroll[0],(pos[1]+self.render_offset[1])-scroll[1]])
 
-    def load_bullet_img(name):
+    def load_bullet_img(self,name):
         img = pygame.image.load(name).convert()
         img.set_colorkey((255,255,255))
         return img

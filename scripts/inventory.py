@@ -19,10 +19,10 @@ class Inventory:
 
     def remove_item(self,slot,return_item=False):
         if return_item == False:
-            del self.inventory[slot]
+            self.inventory[slot] = []
         else:
             item = self.inventory[slot]
-            del self.inventory[slot]
+            self.inventory[slot] = []
             return item
 
     def get_item(self,slot):
