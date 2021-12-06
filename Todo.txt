@@ -1,3 +1,4 @@
+Add inventory view
 Add A Bow
 Add gun changing
 Have a smart AI enemy that can shoot

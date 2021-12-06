@@ -13,6 +13,7 @@ class Game:
         self.FPS = FPS
         self.screen = pygame.display.set_mode(self.win_dims)
         self.display = pygame.Surface((self.display_dims))
+        self.clock = pygame.time.Clock()
         self.version = "v2.0 alpha"
         pygame.display.set_caption(f"Gun Game {self.version}")
         self.state = "Menu"
@@ -44,9 +45,13 @@ class Game:
         for i in range(round(image.get_width()/self.TILESIZE)):
             tile_count = self.tile_data["plants"][i]
             self.zone1_tiles[str(tile_count)] = get_image(image,i*self.TILESIZE,0,self.TILESIZE,self.TILESIZE,1)
+        image = self.img_m.load("data/images/zone1_tileset/trees.png",(255,255,255))
+        for tree in self.tile_data["trees"]:
+            tile_data = self.tile_data["trees"][tree]
+            self.zone1_tiles[str(tree)] = get_image(image,tile_data[0],tile_data[1],tile_data[2],tile_data[3],1)
         self.zone1_tiles["park_bench"] = self.img_m.load("data/images/zone1_tileset/park_bench.png",(255,255,255))
             
-        self.controller_cursor = self.img_m.load("data/images/cursor.png", (255,255,255))
+        self.controller_cursor = self.img_m.load("data/images/cursor.png", (0,0,0))
         self.health_bar_img = self.img_m.load('data/images/Health_Bar.png',(255,255,255))
 
         self.tiles = {"zone1":self.zone1_tiles}
@@ -61,6 +66,7 @@ class Game:
             self.level_editor_mode()
 
     def create_game_manager(self,play_type):
+        pygame.mouse.set_visible(False) #Hide mouse cursor
         self.game_manager = Game_manager(self,play_type)
 
     def create_Level_editor(self):

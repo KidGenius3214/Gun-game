@@ -1,1 +1,2 @@
-{"collidable":["1","2","3","4","5","6","7","8","9","10","11","12","13","14"], "guns":["Revolver","P90","Aug","Famas","Pump Shotgun","Desert Eagle","Gold Desert Eagle","N83"],"plants":["flower_1","flower_2","flower_3","flower_4","flower_5","flower_6"], "Level_Editor_offsets":{"park_bench":[-0.06,-0.2]}}
+{"collidable":["1","2","3","4","5","6","7","8","9","10","11","12","13","14"],"plants":["flower_1","flower_2","flower_3","flower_4","flower_5","flower_6"],
+"trees":{"tree_1":[0,0,26,56],"tree_2":[26,0,128,115]},"Level_Editor_offsets":{"park_bench":[-0.06,-0.2], "tree_1":[-0.03,0.2], "tree_2":[-0.2,-0.62]}}

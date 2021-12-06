@@ -15,7 +15,7 @@ class Base_Enemy(scripts.Entity):
         #Health management
         self.health = health
         self.hurt = False
-        self.dmg_timer = 1
+        self.dmg_timer = 0
         self.alive = self.health > 0
 
         self.state = "Idle"
@@ -42,8 +42,9 @@ class Base_Enemy(scripts.Entity):
 
     def damage(self,dealer,amount):
         if self.hurt == False:
+            #print(amount)
             self.health -= amount
-            self.hurt = True
+            self.hurt = False
             if self.health <= 0:
                 self.health = 0
 
@@ -59,8 +60,8 @@ class Base_Enemy(scripts.Entity):
         if self.hurt == True:
             self.dmg_timer -= 1
             if self.dmg_timer <= 0:
-                self.dmg_timer = 1
-                self.hurt = 0
+                self.dmg_timer = 0
+                self.hurt = False
 
         if self.health <= 0:
             self.alive = False
@@ -76,7 +77,7 @@ class Bad_Guy(Base_Enemy):
         self.state = "Idle"
         self.walk_timer = 45
         self.walk = False
-        self.vision = pygame.Rect(0,0,0,0)
+        self.vis_dis = [100,60]
         
         #wall jump stuff
         self.wall_jump_true = False
@@ -102,7 +103,7 @@ class Bad_Guy(Base_Enemy):
         if self.vel_y > self.g_limit:
             self.vel_y = self.g_limit
 
-        self.states(movement)
+        self.states(movement,target)
 
         self.angle_to_target = scripts.find_angle_from_points(target.get_center(), self.get_center(), [0,0], [0,0], False)
 
@@ -113,21 +114,9 @@ class Bad_Guy(Base_Enemy):
         if self.collisions["bottom"] == True:
             self.vel_y = 1
 
-    def states(self,movement):
-        if self.state == "Idle":
-            if random.random() > 0.5:
-                self.walk = True
-                self.right = True
-                self.vision = pygame.Rect(*self.get_center(),20,10)
-            else:
-                self.walk = True
-                self.left = True
-
-            if self.walk == True:
-                self.walk_timer -= 1
-                if self.walk_timer <= 0:
-                    self.walk_timer = random.randint(20,150)
-                    self.walk = False
+    def states(self,movement,target):
+        pass
+                
 
     def shoot(self):
         pass

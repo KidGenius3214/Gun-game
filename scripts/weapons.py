@@ -89,7 +89,7 @@ class Gun:
         if self.gun_group != "Shotguns":
             if self.shot == False and self.reload_gun == False and self.has_ammo == True:
                 dmg = self.dmg
-                if random.randint(1,100) <= self.crit_rate:
+                if random.random() <= self.crit_rate:
                     dmg = random.randint(self.crit_dmg[0],self.crit_dmg[1])
 
                 if self.gun_group != "Bows":
@@ -109,7 +109,7 @@ class Gun:
             if self.shot == False and self.reload_gun == False and self.has_ammo == True:
                 for i in range(10):
                     dmg = self.dmg
-                    if random.randint(1,100) <= self.crit_rate:
+                    if random.random() <= self.crit_rate:
                         dmg = random.randint(self.crit_dmg[0],self.crit_dmg[1])
 
                     bullet_list.append(Bullet(pos[0]+self.render_offset[0],pos[1]+self.render_offset[1],self.speed,angle+random.uniform(-0.2,0.2),(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img))

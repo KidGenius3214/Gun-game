@@ -37,6 +37,7 @@ class Item:
         self.movement = [0,0]
         self.dropped = False
         self.drop_timer = 45
+        self.pickup_cooldown = 0
         #light/line streak animation
         self.s_count = 0
         self.index = 0
@@ -55,8 +56,8 @@ class Item:
         self.movement[1] += self.vel_y
         self.vel_y += self.grav
             
-        if self.vel_y > 10:
-            self.vel_y = 10
+        if self.vel_y > 15:
+            self.vel_y = 15
         
         self.collisions = self.physics_obj.movement(self.movement,tiles)
         self.rect = self.physics_obj.rect
@@ -64,6 +65,10 @@ class Item:
         self.y = self.rect.y
 
         if self.collisions["bottom"] == True:
+            self.vel_y = -(self.vel_y*0.4)
+            if self.vel_y > -0.6:
+                self.vel_y = 0
+            self.vel_y = round(self.vel_y)
             self.grounded = True
             self.dropped = False
 

@@ -11,6 +11,8 @@ class Player(scripts.Entity):
 
         self.game = game
 
+        self.name = ""
+
         self.state = "Idle"
         self.gravity = gravity
         self.g_limit = g_limit
@@ -35,10 +37,10 @@ class Player(scripts.Entity):
         self.stick_tick = 6
         self.jump_direction = 1
         self.wall_jump_tick = 7
-        self.wall_jump_count = 0
 
         # Gun stuff
         self.equipped_weapon = None
+        self.WEAPON_LIMIT = 4
         self.weapon_index = 0
         self.alive = True
 
@@ -49,7 +51,14 @@ class Player(scripts.Entity):
     def add_weapon_item(self,item): #add weapons
         free_slots = self.inventory.free_slots()
         if len(free_slots) != 0:
-            if free_slots[0] <= 3:
+            if free_slots[0] < self.WEAPON_LIMIT:
+                for i in range(4): # First 4 slots are where the weapons are in
+                    gun = self.inventory.inventory[i]
+                    if len(gun) != 0:
+                        if gun[0].ref_obj.gun_group == item.ref_obj.gun_group:
+                            if gun[0].ref_obj.ammo != gun[0].ref_obj.gun_info['ammo']:
+                                gun[0].ref_obj.add_ammo(item.ref_obj.ammo)
+                                return True
                 return self.inventory.add_item(item,free_slots[0],True)
             else:
                 return False
@@ -63,20 +72,38 @@ class Player(scripts.Entity):
         else:
             return False
 
+    def change_weapon(self,index,increase=False,decrease=False):
+        if increase == False and decrease == False:
+            old_index = self.weapon_index
+            self.weapon_index = index
+            if self.equip_weapon() == False:
+                self.weapon_index = old_index
+        elif increase == True and decrease == False:
+            old_index = self.weapon_index 
+            if self.weapon_index < self.WEAPON_LIMIT:
+                self.weapon_index += 1
+                if self.equip_weapon() == False:
+                    self.weapon_index = old_index
+        elif increase == False and decrease == True:
+            old_index = self.weapon_index
+            self.weapon_index -= 1
+            if self.weapon_index < 0:
+                self.weapon_index = 0
+            if self.equip_weapon() == False:
+                self.weapon_index = old_index
+
     def movement(self,tiles):
         movement = [0,0]
         if self.left == True:
             movement[0] -= self.vel
-            self.flip = True
         if self.right == True:
             movement[0] += self.vel
-            self.flip = False
         movement[1] += self.vel_y
         self.vel_y += self.gravity
         if self.vel_y > self.g_limit:
             self.vel_y = self.g_limit
 
-        if self.wall_jump_true == True and self.wall_jump_count < 4:
+        if self.wall_jump_true == True:
             movement[1] = -4
             movement[0] = 8*self.jump_direction
             self.vel_y = -4
@@ -107,7 +134,6 @@ class Player(scripts.Entity):
         if self.collisions["bottom"] == True:
             self.vel_y = 1
             self.jump_count = 0
-            self.wall_jump_count = 0
 
         if self.wall_jump_true == True:
             self.wall_jump_tick -= 1
@@ -131,16 +157,17 @@ class Player(scripts.Entity):
     def drop_weapon(self):
         if self.equipped_weapon != None:
             item = self.inventory.remove_item(self.weapon_index,return_item=True)[0]
+            item.pickup_cooldown = 40
             item.vel_y = 0
             item.dropped = True
             pos = self.get_center()
             pos[1] -= item.rect.width//2
             item.set_pos(pos)
             if self.flip == False:
-                item.movement[0] = 10
+                item.movement[0] = 4
                 item.movement[1] = -2
             else:
-                item.movement[0] = -10
+                item.movement[0] = -6
                 item.movement[1] = -2
             self.game.items.append(item)
             self.equipped_weapon = None

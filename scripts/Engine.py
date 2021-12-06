@@ -48,6 +48,32 @@ def normalize_vec(vec):
     new_vec = [ vec[0]/mag, vec[1]/mag ]
     return new_vec
 
+def line_to_line_vec_collide(start,end,origin,end2):
+    P = pygame.math.Vector2(start)
+    R = (pygame.math.Vector2(end)-P)
+    Q = pygame.math.Vector2(origin)
+    S = (pygame.math.Vector2(end2)-Q)
+    d = R.dot((S.y, -S.x))
+    if d == 0:
+        return
+    t = (Q-P).dot((S.y, -S.x))/d
+    u = (Q-P).dot((R.y, -R.x))/d
+    if 0 <= t <= 1 and 0 <= u <= 1:
+        point = P+(R*t)
+        return [point.x,point.y]
+    return None
+
+def line_to_rect_collide(start,end,rect):
+    #Line points of the rect
+    #Basically lines going around the border of the rect
+    r_lines = {"L1":(rect.topleft,rect.bottomleft),"L2":(rect.topleft,rect.topright),"L3":(rect.topright, rect.bottomright),"L4":(rect.bottomleft,rect.bottomright)}
+    for line in r_lines:
+        point = line_to_line_vec_collide(start,end,r_lines[line][0],r_lines[line][1])
+        if point != None:
+            return [point,True]
+    return [[0,0],False]
+       
+
 #Image manager
 class Image_Manager:
     def __init__(self, valid_formats):

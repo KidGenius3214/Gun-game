@@ -43,6 +43,7 @@ class Level_Editor:
         self.exit_btn = Button(440, 38, 1, "Exit",2,"small",True)
         self.alert_font = Text("data/images/font.png", 1, 3)
         self.font = Text("data/images/font.png", 1, 2)
+        self.item_name = Text_Input(self.map_name.rect.right+10, self.game.display.get_height()-30,2,1,30)
         self.level_num = 0
         self.map_copy = {}
         self.move = False
@@ -86,14 +87,14 @@ class Level_Editor:
         for i in range(round(image.get_width()/self.game.TILESIZE)):
             tile_id = self.tile_data["plants"][i]
             self.zone1_tiles[str(tile_id)] = get_image(image,i*self.game.TILESIZE,0,self.game.TILESIZE,self.game.TILESIZE,1)
+        image = self.img_m.load("data/images/zone1_tileset/trees.png",(255,255,255))
+        for tree in self.tile_data["trees"]:
+            tile_data = self.tile_data["trees"][tree]
+            self.zone1_tiles[str(tree)] = get_image(image,tile_data[0],tile_data[1],tile_data[2],tile_data[3],1)
             
         self.zone1_tiles["spawn"] = spawn_image
         self.zone1_tiles["spawn_mult"] = spawn_image2
-        image = self.img_m.load("data/images/gun_tiles.png")
-        for i in range(round(image.get_width()/self.game.TILESIZE)):
-            tile_id = self.tile_data["guns"][i]
-            self.zone1_tiles[str(tile_id)] = get_image(image,i*self.game.TILESIZE,0,self.game.TILESIZE,self.game.TILESIZE,1)
-
+        self.zone1_tiles["item_spawn"] = self.img_m.load("data/images/item_spawn.png",(0,0,0))
         self.zone1_tiles["park_bench"] = self.img_m.load("data/images/zone1_tileset/park_bench.png",(255,255,255))
 
         self.tilesets["zone1"] = self.zone1_tiles
@@ -132,6 +133,16 @@ class Level_Editor:
         with open(f"data/maps/{map_name}.level", "wb") as file:
             pickle.dump(data, file)
             file.close()
+
+    def get_tile(self,pos):
+        try:
+            tile_in_layers = {}
+            for layer in self.maps[0]:
+                tile_in_layers[layer] = self.maps[0][layer][pos[1]][pos[0]]
+
+            return tile_in_layers
+        except:
+            pass
 
     def extend_map(self,x,y):
         if x >= self.map_size[0] or y >= self.map_size[1]:
@@ -192,6 +203,8 @@ class Level_Editor:
             data = pickle.load(file)
             file.close()
         norm_data = data["normal_map"]
+        self.log = []
+        self.log_num = 0
         del data
         return norm_data
 
@@ -241,7 +254,7 @@ class Level_Editor:
 
     def chunkify(self,data):
         chunk_data = []
-        final_map = {"spawnpoints":[],"guns":[]}
+        final_map = {"spawnpoints":[],"items":[]}
         mult_x = 0
         mult_y = 0
         for layer in data:
@@ -265,9 +278,9 @@ class Level_Editor:
                                 if data[layer][tile_y][tile_x] in ["spawn","spawn_mult"]:
                                     spawn_id = data[layer][tile_y][tile_x]
                                     final_map["spawnpoints"].append([spawn_id,tile_coord])
-                                if data[layer][tile_y][tile_x] in self.tile_data["guns"]:
-                                    gun_id = data[layer][tile_y][tile_x]
-                                    final_map["guns"].append([gun_id, tile_coord])
+                                if "item_spawn" in data[layer][tile_y][tile_x]:
+                                    item = data[layer][tile_y][tile_x].split(":")[1]
+                                    final_map["items"].append([item,tile_coord])
 
                                 offset = [0,0]
                                 if data[layer][tile_y][tile_x] in self.tile_data["Level_Editor_offsets"]:
@@ -332,6 +345,7 @@ class Level_Editor:
 
     def run(self):
         self.game.display.fill((90,90,90))
+        #self.game.clock.tick(self.game.FPS)
         pos = pygame.mouse.get_pos()
         pos = [int(pos[0]//2),int(pos[1]//2)]   
 
@@ -356,6 +370,8 @@ class Level_Editor:
         for layer in game_map:
             for i, row in enumerate(game_map[layer]):
                 for j, tile in enumerate(row):
+                    if "item_spawn" in tile:
+                        tile = tile.split(":")[0]
                     if tile in self.zone1_tiles and tile not in ['1','2','3']:
                         offset = [0,0]
                         if tile in self.tile_data["Level_Editor_offsets"]:
@@ -383,14 +399,18 @@ class Level_Editor:
 
         x = int((pos[0]+self.scroll[0])/self.game.TILESIZE)
         y = int((pos[1]+self.scroll[1])/self.game.TILESIZE)
-        place = (self.save_button.rect.collidepoint(pos) == False and self.load_button.rect.collidepoint(pos) == False and self.map_name.rect.collidepoint(pos) == False)
+        place = (self.save_button.rect.collidepoint(pos) == False and self.load_button.rect.collidepoint(pos) == False and self.map_name.rect.collidepoint(pos) == False and self.item_name.rect.collidepoint(pos) == False)
         if self.load_map == False and self.exit_prompt == False and self.clicked == False:
             if pygame.mouse.get_pressed()[0] and x > -1 and y > -1 and pos[0] < self.game.display.get_width()-170\
                and place == True:
                 self.extend_map(x,y)
                 try:
                     if self.erase == False:
-                        self.maps[0][self.current_layer][y][x] = self.current_tile
+                        if "item_spawn" in self.current_tile:
+                            tile = "item_spawn" + ":" + self.item_name.text
+                            self.maps[0][self.current_layer][y][x] = tile
+                        else:
+                            self.maps[0][self.current_layer][y][x] = self.current_tile
                     if self.erase == True:
                         self.maps[0][self.current_layer][y][x] = '0'
                 except Exception as e:
@@ -400,6 +420,11 @@ class Level_Editor:
                 self.select = True
                 self.select_done = False
                 
+        selected_tile = self.get_tile([x,y])
+        if selected_tile != None:
+            for l in selected_tile:
+                if "item_spawn" in selected_tile[l]:
+                    self.font.render(self.game.display,"item: " + selected_tile[l].split(":")[1],1,1,(255,255,255))
         
         for button in buttons:
             self.game.display.blit(buttons[button][0], buttons[button][2])
@@ -410,6 +435,9 @@ class Level_Editor:
             pygame.draw.rect(self.game.display, (255,0,0), buttons[self.current_tile][2],1)
 
         self.map_name.update(self.game.display,pos)
+        if self.current_tile == "item_spawn":
+            self.item_name.rect.x = self.map_name.rect.right+10
+            self.item_name.update(self.game.display,pos)
         self.save_button.update(self.game.display,pos)
         self.load_button.update(self.game.display,pos)
         self.exit_btn.update(self.game.display,pos)
@@ -495,6 +523,8 @@ class Level_Editor:
                 self.map_name.get_event(event)
             if self.load_map == True:
                 self.load_name.get_event(event)
+            if self.load_map == False and self.exit_prompt == False and self.current_tile == "item_spawn":
+                self.item_name.get_event(event)
             if event.type == QUIT:
                 pygame.quit()
                 sys.exit()
@@ -551,7 +581,7 @@ class Level_Editor:
                     self.ctrl = True
                 if event.key == K_RCTRL:
                     self.ctrl = True
-                if event.key == K_e and self.load_map == False and self.map_name.selected == False:
+                if event.key == K_e and self.load_map == False and self.map_name.selected == False and self.item_name.selected == False:
                     self.erase = True
                 if event.key == K_b and self.load_map == False and self.map_name.selected == False:
                     self.erase = False

@@ -99,24 +99,24 @@ class Console:
 
         if command.split(" ")[0] == 'give':
             c = command.split(" ")
-            if c[1] == "health":
-                self.game.game_manager.player.add_health(int(command[2]))
-                self.messages.insert(0,f"Gave player {command[2]} health")
+            if len(c) > 1:
+                if c[1] == "health":
+                    self.game.game_manager.player.add_health(int(command[2]))
+                    self.messages.insert(0,f"Gave player {command[2]} health")
 
         if command.split(" ")[0] == 'kill':
             c = command.split(" ")
-            if c[1] == 'all':
-                self.game.game_manager.items = []
-                self.game.game_manager.entities = []
-                self.messages.insert(0,"Killed everything")
-            if c[1] == 'entities':
-                self.game.game_manager.entities = []
-                self.messages.insert(0,"Killed all entities")
-            if c[1] == 'items':
-                self.game.game_manager.items = []
-                self.messages.insert(0,"Killed all items")
-            if ':' in c[1]:
-                pass
+            if len(c) > 1:
+                if c[1] == 'all':
+                    self.game.game_manager.items = []
+                    self.game.game_manager.entities = []
+                    self.messages.insert(0,"Killed everything")
+                if c[1] == 'entities':
+                    self.game.game_manager.entities = []
+                    self.messages.insert(0,"Killed all entities")
+                if c[1] == 'items':
+                    self.game.game_manager.items = []
+                    self.messages.insert(0,"Killed all items")
         
         if command.split(" ")[0] == 'spawn':
             command = command.split(" ")
@@ -128,7 +128,8 @@ class Console:
                     Gun = scripts.Gun(self.game.game_manager,gun_spawn[1],gun_data,self.game.FPS)
                     if len(command) == 3:
                         pos = command[2].split(';')
-                        item = scripts.Item(self.game.game_manager,int(pos[0]),int(pos[1]),gun_spawn[1],"Guns",self.game.FPS,Gun)
+                        pos = [int(pos[0]),int(pos[1])]
+                        item = scripts.Item(self.game.game_manager,pos[0],pos[1],gun_spawn[1],"Guns",self.game.FPS,Gun)
                     else:
                         scroll = self.game.game_manager.camera.scroll
                         pos = [self.game.game_manager.relative_pos[0]+scroll[0],self.game.game_manager.relative_pos[1]+scroll[1]]
@@ -150,7 +151,8 @@ class Console:
                         ref_obj = scripts.Ammo(self.game,item_spawn[1])
                     if len(command) == 3:
                         pos = command[2].split(';')
-                        item = scripts.Item(self.game.game_manager,int(pos[0]),int(pos[1]),item_spawn[1],item_group,self.game.FPS,ref_obj)
+                        pos = [int(pos[0]),int(pos[1])]
+                        item = scripts.Item(self.game.game_manager,pos[0],pos[1],item_spawn[1],item_group,self.game.FPS,ref_obj)
                     else:
                         scroll = self.game.game_manager.camera.scroll
                         pos =[self.game.game_manager.relative_pos[0]+scroll[0],self.game.game_manager.relative_pos[1]+scroll[1]]
@@ -167,7 +169,8 @@ class Console:
                     item_spawn[1] = item_spawn[1].replace('_', ' ')
                     if len(command) == 3:
                         pos = command[2].split(';')
-                        item = scripts.Consumable(self.game.game_manager,int(pos[0]),int(pos[1]),item_spawn[1])
+                        pos = [int(pos[0]),int(pos[1])]
+                        item = scripts.Consumable(self.game.game_manager,pos[0],pos[1],item_spawn[1])
                     else:
                         scroll = self.game.game_manager.camera.scroll
                         pos = [self.game.game_manager.relative_pos[0]+scroll[0],self.game.game_manager.relative_pos[1]+scroll[1]]
