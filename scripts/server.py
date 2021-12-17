@@ -1,7 +1,6 @@
 import socket
 import subprocess
 from threading import Thread
-from _thread import *
 import random
 import json
 import os

@@ -30,7 +30,7 @@ class Item:
         self.collisions = {"right":False,"left":False,"top":False,"bottom":False}
         self.physics_obj = scripts.Physics(self.rect.x,self.rect.y,self.rect.width,self.rect.height+2)
         self.vel_y = 0
-        self.grav = 0.2
+        self.grav = 0.15
         self.timer = 45
         self.step = 1
         self.FPS = FPS

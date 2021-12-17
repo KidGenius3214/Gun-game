@@ -46,12 +46,20 @@ class Game_manager:
         self.consumable_data = self.game.consumable_data
         self.ammo_data = self.game.ammo_data
         self.item_data = self.game.item_info
+        self.key_inputs = self.game.key_inputs
         self.camera = scripts.Camera()
 
         #Fonts
         self.font1 = scripts.Text("data/images/font.png",1,3)
+        self.font1_x1_5 = scripts.Text("data/images/font.png", round(1*1.5), round(3*1.5))
+
         self.font2 = scripts.Text("data/images/font.png",1,2)
+        self.font2_x1_5 = scripts.Text("data/images/font.png", round(1*1.5), round(2*1.5))
+
         self.font3 = scripts.Text("data/images/font.png",1,1)
+        self.font3_x1_5 = scripts.Text("data/images/font.png", round(1*1.5), round(1*1.5))
+
+        self.fonts = {"font_1": [self.font1, self.font1_x1_5], "font_2":[self.font2, self.font2_x1_5], "font_3":[self.font3, self.font3_x1_5]}
         
         #controller stuff
         self.controller_input = self.game.json_h.files["controller_input"]
@@ -71,6 +79,12 @@ class Game_manager:
         self.client = None
         self.ip = ""
         self.port = 1
+
+        #Inventory rendering stuff
+        self.color = (240,240,240)
+        self.selected_color = (255,255,255)
+        self.position = 25
+        self.size = 1
         
         self.reset_level(self.current_level)
 
@@ -369,20 +383,28 @@ class Game_manager:
             x = self.relative_pos[0]+scroll[0]
             if x < self.player.get_center()[0]:
                 self.player.equipped_weapon.flip = True
+                self.player.equipped_weapon.render_offset = self.player.equipped_weapon.inv_render_offset
+                self.player.equipped_weapon.bullet_offset = self.player.equipped_weapon.inv_bullet_offset
                 self.player.flip = True
             else:
                 self.player.equipped_weapon.flip = False
+                self.player.equipped_weapon.render_offset = self.player.equipped_weapon.render_offset_copy
+                self.player.equipped_weapon.bullet_offset = self.player.equipped_weapon.bullet_offset_copy
                 self.player.flip = False
             self.player.equipped_weapon.update(self.game.display,scroll,[self.player.get_center()[0],self.player.get_center()[1]],math.degrees(-angle))
             if pygame.mouse.get_pressed()[0] == True:
-                self.player.equipped_weapon.shoot(self.bullets,"player",[self.player.get_center()[0]+self.player.equipped_weapon.render_offset[0],self.player.get_center()[1]+self.player.equipped_weapon.render_offset[1]],angle)
+                self.player.equipped_weapon.shoot(self.bullets,"player",[self.player.get_center()[0]+self.player.equipped_weapon.bullet_offset[0],self.player.get_center()[1]+self.player.equipped_weapon.bullet_offset[1]],angle)
             if controller_input["active"] == True:
                 x = self.controller_pos[0]+scroll[0]
                 if x < self.player.get_center()[0]:
                     self.player.equipped_weapon.flip = True
+                    self.player.equipped_weapon.render_offset = self.player.equipped_weapon.inv_render_offset
+                    self.player.equipped_weapon.bullet_offset = self.player.equipped_weapon.inv_bullet_offset
                     self.player.flip = True
                 else:
                     self.player.equipped_weapon.flip = False
+                    self.player.equipped_weapon.render_offset = self.player.equipped_weapon.render_offset_copy
+                    self.player.equipped_weapon.bullet_offset = self.player.equipped_weapon.bullet_offset_copy
                     self.player.flip = False
                 if controller_input["buttons"]["shoot"] == True:
                     self.player.equipped_weapon.shoot(self.bullets,"player",[self.player.get_center()[0]+self.player.equipped_weapon.render_offset[0],self.player.get_center()[1]+self.player.equipped_weapon.render_offset[1]],angle)
@@ -450,7 +472,7 @@ class Game_manager:
         health_calc = ((self.player.health*168)/self.player.max_health)
         pygame.draw.rect(self.game.display,(0,255,0),(4,4,round(health_calc*self.zoom),round(16*self.zoom)))
 
-        self.font1.render(self.game.display,f"{self.player.shield}",(self.game.health_bar_img.get_width()*2)+6,2,(127,127,127))
+        self.fonts["font_1"][0].render(self.game.display,f"{self.player.shield}",(self.game.health_bar_img.get_width()*2)+6,2,(127,127,127))
 
         #Show Ammo
         if self.player.equipped_weapon != None:
@@ -459,7 +481,32 @@ class Game_manager:
             if self.player.equipped_weapon.ammo <= 0 and self.player.equipped_weapon.ammo_l <= 0:
                 color = (255,0,0)
                 
-            self.font1.render(self.game.display,ammo_text,2,(self.game.health_bar_img.get_height()*2)+7,color)
+            self.fonts["font_1"][0].render(self.game.display,ammo_text,2,(self.game.health_bar_img.get_height()*2)+7,color)
+
+
+        #Render the inventory of the player
+        inventory_data = self.player.inventory.get_all_items()
+        self.position = 25
+        for gun_id in inventory_data:
+            gun = inventory_data[gun_id]
+            if len(gun) != 0:
+                gun = gun[0].ref_obj
+                if gun != self.player.equipped_weapon:
+                    surf = pygame.mask.from_surface(gun.gun_img)
+                    img = surf.to_surface(setcolor=self.color)
+                    img = pygame.transform.scale(img,(img.get_width(),img.get_height()))
+                    img.set_colorkey((0,0,0))
+                    self.game.display.blit(img, (self.game.display.get_width()-(img.get_width()+self.position), 10))
+                    pygame.draw.line(self.game.display,self.selected_color,(self.game.display.get_width()-(img.get_width()+self.position),1), ((self.game.display.get_width()-(img.get_width()+self.position))+(img.get_width()-2),1),2)
+                    self.position += img.get_width()+20
+                else:
+                    surf = pygame.mask.from_surface(gun.gun_img)
+                    img = surf.to_surface(setcolor=self.selected_color)
+                    img = pygame.transform.scale(img,(round(img.get_width()*1.5),round(img.get_height()*1.5)))
+                    img.set_colorkey((0,0,0))
+                    self.game.display.blit(img, (self.game.display.get_width()-(img.get_width()+self.position), 10))
+                    pygame.draw.line(self.game.display,self.selected_color,(self.game.display.get_width()-(img.get_width()+self.position+3),1), ((self.game.display.get_width()-(img.get_width()+self.position))+(img.get_width()-3),1),2)
+                    self.position += img.get_width()+20
 
         if controller_input["active"] == True:
             if controller_input["axis_val"][0] > 0.5:
@@ -511,11 +558,11 @@ class Game_manager:
                     self.show_console = False
                     
                 if self.show_console == False:
-                    if event.key == K_a:
+                    if event.key == self.key_inputs["left"]:
                         self.player.left = True
-                    if event.key == K_d:
+                    if event.key == self.key_inputs["right"]:
                         self.player.right = True
-                    if event.key == K_r:
+                    if event.key == self.key_inputs["reload"]:
                         if self.player.equipped_weapon != None:
                             if self.player.equipped_weapon.reload_gun == False:
                                 self.player.equipped_weapon.reload_gun = True
@@ -526,10 +573,10 @@ class Game_manager:
                     if event.key == K_c:
                         if self.alt_key == True:
                             self.show_console = True
-                    if event.key == K_q:
+                    if event.key == self.key_inputs["drop"]:
                         self.player.drop_weapon()
                             
-                    if event.key == K_z:
+                    if event.key == self.key_inputs["sniper_zoom"]:
                         if self.player.equipped_weapon != None:
                             if self.player.equipped_weapon.gun_group == "Snipers":
                                 if self.zoom_index < len(self.player.equipped_weapon.zoom_dis):
@@ -540,7 +587,7 @@ class Game_manager:
                                     self.zoom_index = 0
                                 self.change_dims()
                                 
-                    if event.key == K_SPACE:
+                    if event.key == self.key_inputs["jump"]:
                         if self.player.jump_count < 2 and self.player.on_wall == False:
                             self.player.vel_y = -self.player.jump
                             self.player.jump_count += 1
@@ -549,28 +596,28 @@ class Game_manager:
                             self.player.jump_count = 1
 
                     #Gun changing                      
-                    if event.key == K_0:
+                    if event.key == K_1:
                         self.player.change_weapon(0)
                         if self.zoom > 1 and self.player.equipped_weapon.gun_group != "Snipers":
                             self.zoom = 1
                             self.zoom_index = 0
                             self.change_dims()
                         
-                    if event.key == K_1:
+                    if event.key == K_2:
                        self.player.change_weapon(1)
                        if self.zoom > 1 and self.player.equipped_weapon.gun_group != "Snipers":
                            self.zoom = 1
                            self.zoom_index = 0
                            self.change_dims()
                            
-                    if event.key == K_2:
+                    if event.key == K_3:
                         self.player.change_weapon(2)
                         if self.zoom > 1 and self.player.equipped_weapon.gun_group != "Snipers":
                             self.zoom = 1
                             self.zoom_index = 0
                             self.change_dims()
                             
-                    if event.key == K_3:
+                    if event.key == K_4:
                         self.player.change_weapon(3)
                         if self.zoom > 1 and self.player.equipped_weapon.gun_group != "Snipers":
                             self.zoom = 1
@@ -613,5 +660,3 @@ class Game_manager:
     def run(self):
         if self.play_type == "Singleplayer":
             self.normal_play()
-        if self.play_type == "Multiplayer":
-            self.multi_play()

@@ -65,6 +65,9 @@ class Gun:
             
         if self.gun_group == "Snipers":
             self.zoom_dis = self.gun_info["zoom_distances"]
+        if self.gun_group == "Shotguns":
+            self.bullet_amount = self.gun_info["bullet_amount"]
+            self.spread = self.gun_info["spread"]
             
         self.ammo = gun_info["ammo"]
         self.ammo_l = gun_info["ammo_loaded"]
@@ -76,7 +79,18 @@ class Gun:
         self.has_ammo = True
         self.flip = False
         self.crit_dmg = gun_info["crit_dmg"]
+
+        # Rendering stuff
+        #==========================================================================
         self.render_offset = gun_info["render_offset"]
+        self.bullet_offset = gun_info["bullet_offset"]
+        self.render_offset_copy = gun_info["render_offset"]
+        self.bullet_offset_copy = gun_info["bullet_offset"]
+
+        self.inv_render_offset = [-self.render_offset[0],self.render_offset[1]]
+        self.inv_bullet_offset = [-self.bullet_offset[0],self.bullet_offset[1]]
+        #==========================================================================
+
         self.bullet_size = gun_info["bullet_size"]
         self.pause = gun_info["pause"]*FPS
         self.reload_time = gun_info["reload_time"]*FPS
@@ -107,12 +121,12 @@ class Gun:
                     self.shot = False
         else:
             if self.shot == False and self.reload_gun == False and self.has_ammo == True:
-                for i in range(10):
+                for i in range(self.bullet_amount):
                     dmg = self.dmg
                     if random.random() <= self.crit_rate:
                         dmg = random.randint(self.crit_dmg[0],self.crit_dmg[1])
 
-                    bullet_list.append(Bullet(pos[0]+self.render_offset[0],pos[1]+self.render_offset[1],self.speed,angle+random.uniform(-0.2,0.2),(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img))
+                    bullet_list.append(Bullet(pos[0]+self.render_offset[0],pos[1]+self.render_offset[1],self.speed,angle+random.uniform(self.spread[0],self.spread[1]),(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img))
                     
                 self.ammo_l -= 1
                 self.shot = True
@@ -163,6 +177,12 @@ class Gun:
             self.reload_time -= 1
             if self.reload_time <= 0:
                 self.reload()
+
+class RPG(Gun):
+    pass
+
+class Melee_Weapon:
+    pass
 
 class Ammo:
     def __init__(self,game,ammo_type):

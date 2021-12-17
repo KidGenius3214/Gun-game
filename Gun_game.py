@@ -27,6 +27,7 @@ class Game:
         self.item_info = self.json_h.load("data/Game_data/item_info.json","item_data")
         self.ammo_data = self.json_h.load("data/Game_data/ammo_info.json","ammo_data")
         self.consumable_data = self.json_h.load("data/Game_data/consumables.json","consumable_data")
+        self.key_inputs = self.json_h.load("data/Game_data/key_input.json","Key_Inputs")
         self.settings = self.json_h.load("data/Game_data/settings.json","settings")
 
         #images
@@ -83,9 +84,9 @@ class Game:
         self.game_manager.run()
 
     def run(self):
-        self.states_manager()
+        while True:
+            self.states_manager()
 
 
 Main_Game = Game([1200,700], [600,350], 50)
-while True:
-    Main_Game.run()
+Main_Game.run()
