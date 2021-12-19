@@ -1,7 +1,6 @@
 import pygame
 import scripts
 import json
-import pytweening as tween
 
 with open("data/Game_data/item_info.json","r") as file:
     item_info = json.load(file)
@@ -14,13 +13,30 @@ class Item:
         self.item_name = item_name
         self.item_group = item_group
         self.animate = item_info[item_group][item_name][3]
-        if self.animate == True:
-            self.animations = scripts.Animation()
-            path = item_info[item_group][item_name][0]
-            self.animations.load_anim("idle",f"data/images/animations/{path}/idle","png",item_info[item_group][item_name][4],(255,255,255))
-            self.img = self.animations.image
-        else:
-            self.img = pygame.image.load(item_info[item_group][item_name][0]).convert()
+        if item_group not in ["Melee"]:
+            if self.animate == True:
+                self.animations = scripts.Animation()
+                path = item_info[item_group][item_name][0]
+                self.animations.load_anim("idle",f"data/images/animations/{path}/idle","png",item_info[item_group][item_name][4],(255,255,255))
+                self.img = self.animations.image
+            else:
+                self.img = pygame.image.load(item_info[item_group][item_name][0]).convert()
+
+        if item_group in ["Melee"]:
+            if self.animate == True:
+                self.animations = scripts.Animation()
+                path = item_info[item_group][item_name][1]
+                self.animations.load_anim("idle",f"data/images/animations/{path}/idle","png",item_info[item_group][item_name][5],(255,255,255))
+                for i in range(len(item_info[item_group][item_name][5])):
+                    width = int(self.animations.anim_database["idle"]["idle"+"_"+i].get_width()/2)
+                    height = self.animations.anim_database["idle"]["idle"+"_"+i].get_height()
+                    self.animations.anim_database["idle"]["idle"+"_"+i] = scripts.get_image(self.animations.anim_database["idle"]["idle"+"_"+i],width,0,width,height,1)
+                self.animations.image = self.animations.anim_database["idle"]["idle_0"]
+                self.img = self.animations.image
+            else:
+                self.img = pygame.image.load(item_info[item_group][item_name][0]).convert()
+                self.img = scripts.get_image(self.img,int(self.img.get_width()/2),0,int(self.img.get_width()/2),self.img.get_height(),1)
+
         self.img.set_colorkey((255,255,255))
         self.width = self.img.get_width()
         self.height = self.img.get_height()
@@ -77,7 +93,7 @@ class Item:
             self.movement[1] += 0.3
 
         if (self.collisions['right'] == True) or (self.collisions['left']):
-            self.movement[0] = 0
+            self.movement[0] = -(self.movement[0]*0.5)
         
 
     def render(self,surf,scroll):

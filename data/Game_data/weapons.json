@@ -1,5 +1,5 @@
 { 
-"Revolver":{"image":"data/images/weapons/revolver.png","bullet_image":null, "bullet_size":[3,1], "damage":8, "crit_dmg":[10,16],"crit_rate":0.54,"reload_time":0.8,"pause":0.2,"speed":9,"b_lifetime":100,"ammo":204,"ammo_loaded":6,"render_offset":[0,0], "bullet_offset":[10,0]},
+"Revolver":{"image":"data/images/weapons/revolver.png","bullet_image":null, "bullet_size":[3,1], "damage":8, "crit_dmg":[10,16],"crit_rate":0.54,"reload_time":0.8,"pause":0.2,"speed":9,"b_lifetime":100,"ammo":204,"ammo_loaded":6,"render_offset":[0,0], "bullet_offset":[0,0]},
 "P90":{"image":"data/images/weapons/P90.png","bullet_image":null,"bullet_size":[5,1],"damage":16, "crit_dmg":[19,25],"crit_rate":0.12,"reload_time":2,"pause":0.09,"speed":11.2,"b_lifetime":130,"ammo":300,"ammo_loaded":60,"render_offset":[5,1], "bullet_offset":[0,0]},
 "Aug":{"image":"data/images/weapons/AUG.png","bullet_image":null,"bullet_size":[6,1],"damage":19,"crit_dmg":[32,45],"crit_rate":0.09,"reload_time":2.4,"pause":0.03,"speed":11.2,"b_lifetime":90,"ammo":450,"ammo_loaded":75,"render_offset":[0,0], "bullet_offset":[0,-1]},
 "Famas":{"image":"data/images/weapons/Famas.png","bullet_image":null,"bullet_size":[6,1],"damage":24,"crit_dmg":[50,55],"crit_rate":0.1,"reload_time":2.7,"pause":0.025,"speed":12,"b_lifetime":90,"ammo":300,"ammo_loaded":60,"render_offset":[0,0], "bullet_offset":[0,0]},
@@ -7,10 +7,11 @@
 "Desert Eagle":{"image":"data/images/weapons/Desert_eagle.png","bullet_image":null,"bullet_size":[2,1],"damage":10,"crit_dmg":[10,20],"crit_rate":0.12,"reload_time":0.6,"pause":0.15,"speed":10,"b_lifetime":80,"ammo":196,"ammo_loaded":7,"render_offset":[0,0], "bullet_offset":[0,0]},
 "Gold Desert Eagle":{"image":"data/images/weapons/Desert_eagle_gold.png","bullet_image":null,"bullet_size":[2,1],"damage":0.8,"crit_dmg":[25,40],"crit_rate":4,"reload_time":0.6,"pause":0.15,"speed":10,"b_lifetime":80,"ammo":196,"ammo_loaded":7,"render_offset":[0,0], "bullet_offset":[0,0]}, 
 "N83":{"image":"data/images/weapons/N83.png","bullet_image":null,"bullet_size":[6,2],"damage":40,"crit_dmg":[50,60],"crit_rate":0.04,"reload_time":1.2,"pause":0.5,"speed":15.4,"b_lifetime":330,"ammo":40,"ammo_loaded":4,"render_offset":[0,0], "bullet_offset":[0,0], "zoom_distances":[1.5]},
+"Sword":{"image":"data/images/weapons/Sword.png","slash_size":4,"damage":3,"crit_dmg":[5,8],"crit_rate":0.4,"pause":0.01,"render_offset":[0,0],"color":[127,127,127]},
 "Shotguns":["Pump Shotgun"],
 "Pistols":["Revolver","Desert Eagle","Gold Desert Eagle"],
 "Rifles":["P90","Aug","Famas"],
 "Snipers":["N83"], 
-"Melee":[],
+"Melee":["Sword"],
 "Bows":[] 
 }

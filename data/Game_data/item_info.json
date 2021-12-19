@@ -9,6 +9,9 @@
          "Gold Desert Eagle":["data/images/weapons/Desert_eagle_gold.png",2.6,1,false],
          "N83":["data/images/weapons/N83.png",4.3,3,false]
     },
+"Melee":{
+	"Sword": ["data/images/weapons/Sword.png",1.8,1,false]
+},
 "Ammo":
 	{"Pistol Ammo":["data/images/items/pistol_ammo.png",1.8,1,false], 
      	"Shotgun Ammo":["data/images/items/shotgun_ammo.png",1.8,1,false] 

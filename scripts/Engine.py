@@ -25,10 +25,10 @@ def perfect_outline(img, surf, loc, color, colorkey=(0,0,0), colorkey2=(0,0,0)):
     surf.blit(mask_surf,(loc[0],loc[1]+1))
 
 def get_image(image,x,y,w,h,scale):
-        surf = pygame.Surface((w,h))
-        surf.set_colorkey((0,0,0))
-        surf.blit(image, (0,0), (x,y,w,h))
-        return pygame.transform.scale(surf, (int(w*scale), int(h*scale)))
+    surf = pygame.Surface((w,h))
+    surf.set_colorkey((0,0,0))
+    surf.blit(image, (0,0), (x,y,w,h))
+    return pygame.transform.scale(surf, (int(w*scale), int(h*scale)))
 
 def blit_center(surf,other_surf,pos):
     x = int(other_surf.get_width()/2)
@@ -362,7 +362,7 @@ class Text:
         self.load_font()
 
     def load_font(self):
-        Font_Order = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','.','-',',',':','+','\'','!','?','0','1','2','3','4','5','6','7','8','9','(',')','/','_','=','\\','[',']','*','"','<','>',';','|', '%', '&',"/i"]
+        Font_Order = ['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z','a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','.','-',',',':','+','\'','!','?','0','1','2','3','4','5','6','7','8','9','(',')','/','_','=','\\','[',']','*','"','<','>',';','|', '%', '&','\x00']
         font_image = pygame.image.load(self.font_image).convert()
         character_count = 0
         current_char_width = 0
@@ -382,26 +382,37 @@ class Text:
         y_offset = 0
         for index,char in enumerate(text):
             if color != None:
-                if char not in [' ']:
+                if char not in [' ','\n']:
                     char_img = swap_color(self.font[char], (255,0,0), color)
             else:
-                if char not in [' ']:
+                if char not in [' ','\n']:
                     char_img = self.font[char]
-            if char not in [' ']:
+
+            if char not in [' ','\n']:
                 surf.blit(char_img, (x+spacing, y+y_offset))
-            if char != ' ':
+            if char not in [' ','\n']:
                 spacing += self.font[char].get_width() + self.spacing
             else:
                 spacing += self.font['A'].get_width()
+            
+            if char == '\n':
+                y_offset += self.font['A'].get_height()+1
+                spacing = 0
+            
 
     def get_size(self,text):
         width = 0
+        height = self.font['A'].get_height()
         for char in text:
-            if char != ' ':
+            if char not in [' ','\n']:
                 width += self.font[char].get_width()
             else:
                 width += self.font['A'].get_width()
-        height = self.font['A'].get_height()
+
+            if char == '\n':
+                height += self.font['A'].get_height()+1
+                width = 0
+
         width += (len(text)-1)*self.spacing
         return [width, height]
 

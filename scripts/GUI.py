@@ -123,4 +123,18 @@ class Text_Input:
                 self.removed_tick = 90
                 self.removed = False
 
-        
+
+class Tooltip:
+    def __init__(self,x,y,spacing,font_size,text,color):
+        self.x = x
+        self.y = y
+        self.font = Text("data/images/font.png",spacing,font_size)
+        self.text = str(text)
+        self.color = color
+
+    def draw(self,surf,scroll):
+        size = self.font.get_size(self.text)
+
+        self.font.render(surf,self.text,self.x-scroll[0],self.y-scroll[1],self.color)
+        pygame.draw.line(surf,self.color,(self.x-scroll[0], self.y+size[1]+1-scroll[1]), (self.x+size[0]-scroll[0],self.y+size[1]+1-scroll[1]))
+    

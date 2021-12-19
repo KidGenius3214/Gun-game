@@ -47,25 +47,23 @@ class Gun:
     def __init__(self,game,gun,gun_info,FPS):
         self.game = game
         self.gun_info = gun_info
-        self.gun = gun
+        self.name = gun
         self.FPS = FPS
-        self.gun_img = pygame.image.load(self.gun_info["image"]).convert()
-        self.gun_img.set_colorkey((255,255,255))
-        self.gun_group = ""
-        if self.gun in self.game.gun_data["Shotguns"]:
-            self.gun_group = "Shotguns"
-        if self.gun in self.game.gun_data["Pistols"]:
-            self.gun_group = "Pistols"
-        if self.gun in self.game.gun_data["Rifles"]:
-            self.gun_group = "Rifles"
-        if self.gun in self.game.gun_data["Snipers"]:
-            self.gun_group = "Snipers"
-        if self.gun in self.game.gun_data["Bows"]:
-            self.gun_group = "Bows"
+        self.img = pygame.image.load(self.gun_info["image"]).convert()
+        self.img.set_colorkey((255,255,255))
+        self.weapon_group = ""
+        if self.name in self.game.weapon_data["Shotguns"]:
+            self.weapon_group = "Shotguns"
+        if self.name in self.game.weapon_data["Pistols"]:
+            self.weapon_group = "Pistols"
+        if self.name in self.game.weapon_data["Rifles"]:
+            self.weapon_group = "Rifles"
+        if self.name in self.game.weapon_data["Snipers"]:
+            self.weapon_group = "Snipers"
             
-        if self.gun_group == "Snipers":
+        if self.weapon_group == "Snipers":
             self.zoom_dis = self.gun_info["zoom_distances"]
-        if self.gun_group == "Shotguns":
+        if self.weapon_group == "Shotguns":
             self.bullet_amount = self.gun_info["bullet_amount"]
             self.spread = self.gun_info["spread"]
             
@@ -100,13 +98,13 @@ class Gun:
             self.bullet_img = None
 
     def shoot(self,bullet_list,owner,pos,angle):
-        if self.gun_group != "Shotguns":
+        if self.weapon_group != "Shotguns":
             if self.shot == False and self.reload_gun == False and self.has_ammo == True:
                 dmg = self.dmg
                 if random.random() <= self.crit_rate:
                     dmg = random.randint(self.crit_dmg[0],self.crit_dmg[1])
 
-                if self.gun_group != "Bows":
+                if self.weapon_group != "Bows":
                     bullet_list.append(Bullet(pos[0],pos[1],self.speed,angle,(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img))
                 else:
                     bullet_list.append(Bullet(pos[0],pos[1],self.speed,angle,(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img,self.gun_info["b_grav"]))
@@ -138,7 +136,14 @@ class Gun:
                     self.shot = False
 
     def render(self,surf,scroll,pos,angle):
-        blit_center(surf,pygame.transform.rotate(pygame.transform.flip(self.gun_img, False, self.flip),angle),[(pos[0]+self.render_offset[0])-scroll[0],(pos[1]+self.render_offset[1])-scroll[1]])
+        if self.flip == True:
+            self.render_offset = self.inv_render_offset
+            self.bullet_offset = self.inv_bullet_offset
+        else:
+            self.render_offset = self.render_offset_copy
+            self.bullet_offset = self.bullet_offset_copy
+
+        blit_center(surf,pygame.transform.rotate(pygame.transform.flip(self.img, False, self.flip),angle),[(pos[0]+self.render_offset[0])-scroll[0],(pos[1]+self.render_offset[1])-scroll[1]])
 
     def load_bullet_img(self,name):
         img = pygame.image.load(name).convert()
@@ -182,20 +187,47 @@ class RPG(Gun):
     pass
 
 class Melee_Weapon:
-    pass
+    def __init__(self,game,weapon):
+        self.game = game
+        self.name = weapon
+        self.weapon_info = self.game.weapon_data[self.name]
+        self.weapon_group = "Melee"
+        self.img = pygame.image.load(self.weapon_info["image"]).convert()
+        self.img.set_colorkey((255,255,255))
+        self.attack_size = self.weapon_info["slash_size"]
+        self.dmg = self.weapon_info["damage"]
+        self.crit_dmg = self.weapon_info["crit_dmg"]
+        self.crit_rate = self.weapon_info["crit_rate"]
+        self.color = self.weapon_info["color"]
+        self.flip = True
+
+        # Rendering stuff
+        # ======================================================================
+        self.render_offset = self.weapon_info["render_offset"]
+        self.render_offset_copy = self.weapon_info["render_offset"]
+        self.inv_render_offset = [-self.render_offset[0],self.render_offset[1]]
+        # ======================================================================
+    
+    def render(self,surf,scroll,pos,angle):
+        if self.flip == True:
+            self.render_offset = self.inv_render_offset
+        else:
+            self.render_offset = self.render_offset_copy
+
+        blit_center(surf,pygame.transform.rotate(pygame.transform.flip(self.img, False, self.flip),angle),[(pos[0]+self.render_offset[0])-scroll[0],(pos[1]+self.render_offset[1])-scroll[1]])
 
 class Ammo:
     def __init__(self,game,ammo_type):
         self.game = game
         self.ammo_type = ammo_type
         self.value = self.game.ammo_data[ammo_type][0]
-        self.gun_group = self.game.ammo_data[ammo_type][1]
+        self.weapon_group = self.game.ammo_data[ammo_type][1]
 
     def get_val(self):
         return self.value
 
     def get_group(self):
-        return self.gun_group
+        return self.weapon_group
 
 
     

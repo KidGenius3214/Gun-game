@@ -55,12 +55,10 @@ class Player(scripts.Entity):
                 for i in range(self.WEAPON_LIMIT): # First 4 slots are where the weapons are in
                     gun = self.inventory.inventory[i]
                     if len(gun) != 0:
-                        if gun[0].ref_obj.gun_group == item.ref_obj.gun_group:
+                        if gun[0].ref_obj.weapon_group == item.ref_obj.weapon_group:
                             if gun[0].ref_obj.ammo != gun[0].ref_obj.gun_info['ammo']:
                                 gun[0].ref_obj.add_ammo(item.ref_obj.ammo)
                                 return True
-                #if free_slots[0] == 0:
-                    #self.weapon_index = 0
                 return self.inventory.add_item(item,free_slots[0],True)
             else:
                 return False
@@ -144,7 +142,7 @@ class Player(scripts.Entity):
         value = item.ref_obj.get_val()
         a_type = item.ref_obj.ammo_type
         if self.equipped_weapon != None:
-            if self.equipped_weapon.gun_group == self.game.ammo_data[a_type][1]: # Firstly check if the equipped weapon is of this ammo type
+            if self.equipped_weapon.weapon_group == self.game.ammo_data[a_type][1]: # Firstly check if the equipped weapon is of this ammo type
                 if self.equipped_weapon.ammo != self.equipped_weapon.gun_info['ammo']:
                     self.equipped_weapon.add_ammo(value)
                     item_remove_list.append(index)
@@ -152,7 +150,7 @@ class Player(scripts.Entity):
                 for i in range(3): # First 4 slots are where the weapons are in
                     gun = self.inventory.inventory[i+1]
                     if len(gun) != 0:
-                        if gun[0].ref_obj.gun_group == self.game.ammo_data[a_type][1]:
+                        if gun[0].ref_obj.weapon_group == self.game.ammo_data[a_type][1]:
                             if gun[0].ref_obj.ammo != gun[0].ref_obj.gun_info['ammo']:
                                 gun[0].ref_obj.add_ammo(value)
                                 item_remove_list.append(index)
@@ -161,7 +159,7 @@ class Player(scripts.Entity):
             for i in range(3): # First 4 slots are where the weapons are in
                 gun = self.inventory.inventory[i+1]
                 if len(gun) != 0:
-                    if gun[0].ref_obj.gun_group == self.game.ammo_data[a_type][1]:
+                    if gun[0].ref_obj.weapon_group == self.game.ammo_data[a_type][1]:
                         if gun[0].ref_obj.ammo != gun[0].ref_obj.gun_info['ammo']:
                             gun[0].ref_obj.add_ammo(value)
                             item_remove_list.append(index)
