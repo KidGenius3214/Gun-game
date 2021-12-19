@@ -11,15 +11,8 @@ class Game:
         self.win_dims = win_dims
         self.display_dims = display_dims
         self.FPS = FPS
-        self.screen = pygame.display.set_mode(self.win_dims)
-        self.display = pygame.Surface((self.display_dims))
-        self.clock = pygame.time.Clock()
-        self.version = "v2.0 alpha"
-        pygame.display.set_caption(f"Gun Game {self.version}")
-        self.state = "Menu"
-        self.TILESIZE = 20
-        self.CHUNKSIZE = 16
-        self.img_m = Image_Manager(['.png','jpg'])
+        
+        # Setup the screen and display
         self.json_h = JSON_Handler()
         self.controller_input = self.json_h.load("data/Game_data/controller_input.json", "controller_input")
         self.weapon_data = self.json_h.load("data/Game_data/weapons.json","gun_data")
@@ -29,6 +22,23 @@ class Game:
         self.consumable_data = self.json_h.load("data/Game_data/consumables.json","consumable_data")
         self.key_inputs = self.json_h.load("data/Game_data/key_input.json","Key_Inputs")
         self.settings = self.json_h.load("data/Game_data/settings.json","settings")
+        self.scale = self.settings['video_settings'][0]
+        self.fullscreen = False
+
+        if self.settings['video_settings'][1] == False:
+            self.screen = pygame.display.set_mode((int(self.win_dims[0]*self.scale),int(self.win_dims[1]*self.scale)),pygame.RESIZABLE)
+        else:
+            self.screen = pygame.display.set_mode((int(self.win_dims[0]*self.scale),int(self.win_dims[1]*self.scale)),pygame.FULLSCREEN)
+            self.fullscreen = True
+        self.display = pygame.Surface((self.display_dims))
+
+        self.clock = pygame.time.Clock()
+        self.version = "v2.0 alpha"
+        pygame.display.set_caption(f"Gun Game {self.version}")
+        self.state = "Menu"
+        self.TILESIZE = 20
+        self.CHUNKSIZE = 16
+        self.img_m = Image_Manager(['.png','jpg'])
 
         #images
         # Zone 1 images
@@ -88,5 +98,5 @@ class Game:
             self.states_manager()
 
 
-Main_Game = Game([1200,700], [600,350], 50)
+Main_Game = Game([600,350], [600,350], 50)
 Main_Game.run()

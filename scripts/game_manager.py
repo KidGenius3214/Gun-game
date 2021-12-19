@@ -126,8 +126,8 @@ class Game_manager:
                 item = scripts.Consumable(self,int(item_id[1][0]*self.game.TILESIZE),int(item_id[1][1]*self.game.TILESIZE),item_id[0])
                 self.items.append(item)
         
-        self.sword = scripts.Melee_Weapon(self,"Sword")
-        item = scripts.Item(self,500,-600,"Sword","Melee",self.game.FPS,self.sword)
+        sword = scripts.Melee_Weapon(self,"Sword")
+        item = scripts.Item(self,500,150,"Sword","Melee",self.game.FPS,sword)
         self.items.append(item)
             
     def handle_controller_input(self):
@@ -257,7 +257,7 @@ class Game_manager:
         self.game.display.fill((90,90,90))
         self.game.clock.tick(self.game.FPS)
         pos = pygame.mouse.get_pos()
-        size_dif = float(self.game.win_dims[0]/self.game.display.get_width())
+        size_dif = float(self.game.screen.get_width()/self.game.display.get_width())
         self.relative_pos = [int(pos[0]/size_dif), int(pos[1]/size_dif)]
 
         self.game.display = pygame.transform.scale(self.game.display,(round(self.game.display_dims[0]*self.zoom),round(self.game.display_dims[1]*self.zoom)))
@@ -375,7 +375,7 @@ class Game_manager:
                         self.player.equipped_weapon.flip = False
                         self.player.flip = False
                     if controller_input["buttons"]["shoot"] == True:
-                        self.player.equipped_weapon.shoot(self.bullets,"player",[self.player.get_center()[0]+self.player.equipped_weapon.render_offset[0],self.player.get_center()[1]+self.player.equipped_weapon.render_offset[1]],angle)
+                        self.player.equipped_weapon.shoot(self.bullets,"player",[self.player.get_center()[0]+self.player.equipped_weapon.bullet_offset[0],self.player.get_center()[1]+self.player.equipped_weapon.bullet_offset[1]],angle)
             if self.player.equipped_weapon.weapon_group == "Melee":
                 if x < self.player.get_center()[0]:
                     self.player.equipped_weapon.flip = True
@@ -383,7 +383,7 @@ class Game_manager:
                 else:
                     self.player.equipped_weapon.flip = False
                     self.player.flip = False
-                self.player.equipped_weapon.render(self.game.display,scroll,[self.player.get_center()[0],self.player.get_center()[1]],math.degrees(-angle))
+                self.player.equipped_weapon.update(self.game.display,scroll,[self.player.get_center()[0],self.player.get_center()[1]],math.degrees(-angle))
                 if controller_input["active"] == True:
                     x = self.controller_pos[0]+scroll[0]
                     if x < self.player.get_center()[0]:
@@ -623,6 +623,14 @@ class Game_manager:
                         if self.player.on_wall == True and self.player.collisions["bottom"] == False:
                             self.player.wall_jump_true = True
                             self.player.jump_count = 1
+                    
+                    if event.key == K_F11:
+                        if self.game.fullscreen != True:
+                            screen = pygame.display.set_mode((self.game.win_dims[0]*self.game.scale,self.game.win_dims[1]*self.game.scale),pygame.FULLSCREEN)
+                            self.game.fullscreen = True
+                        else:
+                            screen = pygame.display.set_mode((self.game.win_dims[0]*self.game.scale,self.game.win_dims[1]*self.game.scale),pygame.RESIZABLE)
+                            self.game.fullscreen = False
 
                     #Gun changing                      
                     if event.key == K_1:
@@ -683,7 +691,7 @@ class Game_manager:
                     if event.key == K_RALT:
                         self.alt_key = False
                         
-        self.game.screen.blit(pygame.transform.scale(self.game.display, self.game.win_dims), (0,0))
+        self.game.screen.blit(pygame.transform.scale(self.game.display, (self.game.screen.get_width(),self.game.screen.get_height())), (0,0))
         pygame.display.update()
 
     def run(self):

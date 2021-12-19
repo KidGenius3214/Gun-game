@@ -33,6 +33,7 @@ class Bullet:
         self.lifetime -= 1
         if self.img != None:
             blit_center(surf,pygame.transform.rotate(self.img,math.degrees(-self.angle)),[self.rect.x-scroll[0],self.rect.y-scroll[1]])
+            #pygame.draw.rect(surf,(0,255,0),(self.rect.x-scroll[0],self.rect.y-scroll[1],self.rect.width,self.rect.height),1)
         else:
             pygame.draw.line(surf,self.color,(self.x-scroll[0],self.y-scroll[1]),(self.x+math.cos(self.angle)*self.mult[0]-scroll[0],
                                                                                 self.y+math.sin(self.angle)*self.mult[0]-scroll[1]),self.mult[1])
@@ -194,12 +195,14 @@ class Melee_Weapon:
         self.weapon_group = "Melee"
         self.img = pygame.image.load(self.weapon_info["image"]).convert()
         self.img.set_colorkey((255,255,255))
-        self.attack_size = self.weapon_info["slash_size"]
         self.dmg = self.weapon_info["damage"]
         self.crit_dmg = self.weapon_info["crit_dmg"]
         self.crit_rate = self.weapon_info["crit_rate"]
-        self.color = self.weapon_info["color"]
+        self.attack_speed = self.weapon_info["attack_speed"]*self.game.game.FPS
+        self.slash_speed = self.weapon_info["speed"]
+        self.lifetime = self.weapon_info["lifetime"]
         self.flip = True
+        self.attacked = False
 
         # Rendering stuff
         # ======================================================================
@@ -215,6 +218,15 @@ class Melee_Weapon:
             self.render_offset = self.render_offset_copy
 
         blit_center(surf,pygame.transform.rotate(pygame.transform.flip(self.img, False, self.flip),angle),[(pos[0]+self.render_offset[0])-scroll[0],(pos[1]+self.render_offset[1])-scroll[1]])
+    
+    def update(self,surf,scroll,pos,angle):
+        self.render(surf,scroll,pos,angle)
+
+        if self.attacked == True:
+            self.attack_speed -= 1
+            if self.attack_speed <= 0:
+                self.attacked = False
+                self.attack_speed = self.weapon_info["attack_speed"]*self.game.game.FPS
 
 class Ammo:
     def __init__(self,game,ammo_type):

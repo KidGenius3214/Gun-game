@@ -60,7 +60,8 @@ class Menu:
         self.game.display.fill((90,90,90))
         self.clock.tick(self.game.FPS)
         pos = pygame.mouse.get_pos()
-        pos = [int(pos[0]//2), int(pos[1]//2)]
+        size_dif = float(self.game.screen.get_width()/self.game.display.get_width())
+        pos = [int(pos[0]/size_dif), int(pos[1]/size_dif)]
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -158,5 +159,5 @@ class Menu:
                 self.clicked = False
                 self.click_tick = 30
 
-        self.game.screen.blit(pygame.transform.scale(self.game.display, self.game.win_dims), (0,0))
+        self.game.screen.blit(pygame.transform.scale(self.game.display, (self.game.screen.get_width(),self.game.screen.get_height())), (0,0))
         pygame.display.update()
