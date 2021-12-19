@@ -41,3 +41,6 @@ class Inventory:
 
     def clear(self):
         self.inventory = {}
+    
+    def get_size(self):
+        return self.size

@@ -52,13 +52,15 @@ class Player(scripts.Entity):
         free_slots = self.inventory.free_slots()
         if len(free_slots) != 0:
             if free_slots[0] < self.WEAPON_LIMIT:
-                for i in range(4): # First 4 slots are where the weapons are in
+                for i in range(self.WEAPON_LIMIT): # First 4 slots are where the weapons are in
                     gun = self.inventory.inventory[i]
                     if len(gun) != 0:
                         if gun[0].ref_obj.gun_group == item.ref_obj.gun_group:
                             if gun[0].ref_obj.ammo != gun[0].ref_obj.gun_info['ammo']:
                                 gun[0].ref_obj.add_ammo(item.ref_obj.ammo)
                                 return True
+                #if free_slots[0] == 0:
+                    #self.weapon_index = 0
                 return self.inventory.add_item(item,free_slots[0],True)
             else:
                 return False
@@ -91,6 +93,79 @@ class Player(scripts.Entity):
                 self.weapon_index = 0
             if self.equip_weapon() == False:
                 self.weapon_index = old_index
+    
+    def drop_weapon(self,sort_weapons=True):
+        if self.equipped_weapon != None:
+            item = self.inventory.remove_item(self.weapon_index,return_item=True)[0]
+            item.pickup_cooldown = 40
+            item.vel_y = 0
+            item.dropped = True
+            pos = self.get_center()
+            pos[1] -= item.rect.width//2
+            item.set_pos(pos)
+            if self.flip == False:
+                item.movement[0] = 4
+                item.movement[1] = -2
+            else:
+                item.movement[0] = -6
+                item.movement[1] = -2
+            self.game.items.append(item)
+            self.equipped_weapon = None
+            if sort_weapons == True:
+                self.sort_weapons()
+            self.equip_weapon()
+
+    def swap_weapon(self,item):
+        if item != None:
+            self.drop_weapon(False)
+            return self.add_weapon_item(item)
+        else:
+            return False
+    
+    def sort_weapons(self):
+        if self.weapon_index != 3:
+            if self.weapon_index == 0:
+                for i in range(3):
+                    temp = self.inventory.remove_item(i+1,True)
+                    if len(temp) != 0:
+                        self.inventory.add_item(temp[0],i,True)
+            if self.weapon_index == 1:
+                for i in range(2):
+                    temp = self.inventory.remove_item(self.weapon_index+(1+i),True)
+                    if len(temp) != 0:
+                        self.inventory.add_item(temp[0],i+1,True)
+            if self.weapon_index == 2:
+                for i in range(1):
+                    temp = self.inventory.remove_item(self.weapon_index+1,True)
+                    if len(temp) != 0:
+                        self.inventory.add_item(temp[0],i+2,True)
+    
+    def add_ammo(self,item,item_remove_list,index):
+        value = item.ref_obj.get_val()
+        a_type = item.ref_obj.ammo_type
+        if self.equipped_weapon != None:
+            if self.equipped_weapon.gun_group == self.game.ammo_data[a_type][1]: # Firstly check if the equipped weapon is of this ammo type
+                if self.equipped_weapon.ammo != self.equipped_weapon.gun_info['ammo']:
+                    self.equipped_weapon.add_ammo(value)
+                    item_remove_list.append(index)
+            else: #If not,look through the inventory for this ammo type
+                for i in range(3): # First 4 slots are where the weapons are in
+                    gun = self.inventory.inventory[i+1]
+                    if len(gun) != 0:
+                        if gun[0].ref_obj.gun_group == self.game.ammo_data[a_type][1]:
+                            if gun[0].ref_obj.ammo != gun[0].ref_obj.gun_info['ammo']:
+                                gun[0].ref_obj.add_ammo(value)
+                                item_remove_list.append(index)
+                                break
+        else: #If not,look through the inventory for this ammo type
+            for i in range(3): # First 4 slots are where the weapons are in
+                gun = self.inventory.inventory[i+1]
+                if len(gun) != 0:
+                    if gun[0].ref_obj.gun_group == self.game.ammo_data[a_type][1]:
+                        if gun[0].ref_obj.ammo != gun[0].ref_obj.gun_info['ammo']:
+                            gun[0].ref_obj.add_ammo(value)
+                            item_remove_list.append(index)
+                            break
 
     def movement(self,tiles):
         movement = [0,0]
@@ -154,24 +229,6 @@ class Player(scripts.Entity):
                 if self.shield < 0:
                     self.shield = 0
 
-    def drop_weapon(self):
-        if self.equipped_weapon != None:
-            item = self.inventory.remove_item(self.weapon_index,return_item=True)[0]
-            item.pickup_cooldown = 40
-            item.vel_y = 0
-            item.dropped = True
-            pos = self.get_center()
-            pos[1] -= item.rect.width//2
-            item.set_pos(pos)
-            if self.flip == False:
-                item.movement[0] = 4
-                item.movement[1] = -2
-            else:
-                item.movement[0] = -6
-                item.movement[1] = -2
-            self.game.items.append(item)
-            self.equipped_weapon = None
-
     def add_health(self,amount):
         self.health += amount
         if self.health > self.max_health:
@@ -180,35 +237,7 @@ class Player(scripts.Entity):
     def add_shield(self,amount):
         self.shield += amount
         if self.shield > self.max_shield:
-            self.shield = self.max_shield # max value of the shield is 150
-
-    def add_ammo(self,item,item_remove_list,index):
-        value = item.ref_obj.get_val()
-        a_type = item.ref_obj.ammo_type
-        if self.equipped_weapon != None:
-            if self.equipped_weapon.gun_group == self.game.ammo_data[a_type][1]: # Firstly check if the equipped weapon is of this ammo type
-                if self.equipped_weapon.ammo != self.equipped_weapon.gun_info['ammo']:
-                    self.equipped_weapon.add_ammo(value)
-                    item_remove_list.append(index)
-            else: #If not,look through the inventory for this ammo type
-                for i in range(3): # First 4 slots are where the weapons are in
-                    gun = self.inventory.inventory[i+1]
-                    if len(gun) != 0:
-                        if gun[0].ref_obj.gun_group == self.game.ammo_data[a_type][1]:
-                            if gun[0].ref_obj.ammo != gun[0].ref_obj.gun_info['ammo']:
-                                gun[0].ref_obj.add_ammo(value)
-                                item_remove_list.append(index)
-                                break
-        else: #If not,look through the inventory for this ammo type
-            for i in range(3): # First 4 slots are where the weapons are in
-                gun = self.inventory.inventory[i+1]
-                if len(gun) != 0:
-                    if gun[0].ref_obj.gun_group == self.game.ammo_data[a_type][1]:
-                        if gun[0].ref_obj.ammo != gun[0].ref_obj.gun_info['ammo']:
-                            gun[0].ref_obj.add_ammo(value)
-                            item_remove_list.append(index)
-                            break
-            
+            self.shield = self.max_shield # max value of the shield is 150            
 
     def update(self):
         if self.hurt == True:

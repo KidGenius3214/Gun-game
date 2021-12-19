@@ -81,8 +81,6 @@ class Game_manager:
         self.port = 1
 
         #Inventory rendering stuff
-        self.color = (240,240,240)
-        self.selected_color = (255,255,255)
         self.position = 25
         self.size = 1
         
@@ -300,17 +298,6 @@ class Game_manager:
                             if tile[0] in self.tile_data["collidable"]:
                                 tiles.append(pygame.Rect(tile[1][0]*self.game.TILESIZE, tile[1][1]*self.game.TILESIZE,self.game.TILESIZE,self.game.TILESIZE))
 
-        b_remove_list = []
-        n = 0
-        for bullet in self.bullets:
-            bullet.run(self.game.display,scroll)
-            if bullet.lifetime <= 0:
-                b_remove_list.append(n)
-            n += 1
-        b_remove_list.sort(reverse=True)
-        for bullet in b_remove_list:
-            self.bullets.pop(bullet)
-
         item_remove_list = []
         n = 0
         for item in self.items:
@@ -327,9 +314,19 @@ class Game_manager:
                     if isinstance(item, scripts.Item):
                         if item.item_group in ["Guns"]:
                             if item.dropped == False:
-                                if self.player.add_weapon_item(item) == True:
-                                    item_remove_list.append(n)
-                                    self.player.equip_weapon()
+                                if self.player.equipped_weapon != None:
+                                    if item.ref_obj.gun == self.player.equipped_weapon.gun:
+                                        if self.player.add_weapon_item(item) == True:
+                                            item_remove_list.append(n)
+                                            self.player.equip_weapon()
+                                if pygame.key.get_pressed()[self.key_inputs["equip"]] == True:
+                                    if self.player.add_weapon_item(item) == True:
+                                        item_remove_list.append(n)
+                                        self.player.equip_weapon()
+                                elif pygame.key.get_pressed()[self.key_inputs["change"]] == True: 
+                                    if self.player.swap_weapon(item) == True:
+                                        item_remove_list.append(n)
+                                        self.player.equip_weapon()
                         if item.item_group == "Ammo":
                             self.player.add_ammo(item,item_remove_list,n)
                     if isinstance(item,scripts.Consumable):
@@ -345,6 +342,17 @@ class Game_manager:
         item_remove_list.sort(reverse=True)
         for item in item_remove_list:
             self.items.pop(item)
+        
+        b_remove_list = []
+        n = 0
+        for bullet in self.bullets:
+            bullet.run(self.game.display,scroll)
+            if bullet.lifetime <= 0:
+                b_remove_list.append(n)
+            n += 1
+        b_remove_list.sort(reverse=True)
+        for bullet in b_remove_list:
+            self.bullets.pop(bullet)
 
         enemy_remove_list = []
         n = 0
@@ -474,7 +482,7 @@ class Game_manager:
 
         self.fonts["font_1"][0].render(self.game.display,f"{self.player.shield}",(self.game.health_bar_img.get_width()*2)+6,2,(127,127,127))
 
-        #Show Ammo
+        #Show ammo and gun name
         if self.player.equipped_weapon != None:
             color = (255,255,255)
             ammo_text = f"{self.player.equipped_weapon.ammo}/{self.player.equipped_weapon.ammo_l}"
@@ -486,26 +494,26 @@ class Game_manager:
 
         #Render the inventory of the player
         inventory_data = self.player.inventory.get_all_items()
-        self.position = 25
-        for gun_id in inventory_data:
+        self.position = 10
+        for i,gun_id in enumerate(inventory_data):
             gun = inventory_data[gun_id]
             if len(gun) != 0:
                 gun = gun[0].ref_obj
                 if gun != self.player.equipped_weapon:
                     surf = pygame.mask.from_surface(gun.gun_img)
-                    img = surf.to_surface(setcolor=self.color)
+                    img = surf.to_surface(setcolor=(240,240,240))
                     img = pygame.transform.scale(img,(img.get_width(),img.get_height()))
                     img.set_colorkey((0,0,0))
                     self.game.display.blit(img, (self.game.display.get_width()-(img.get_width()+self.position), 10))
-                    pygame.draw.line(self.game.display,self.selected_color,(self.game.display.get_width()-(img.get_width()+self.position),1), ((self.game.display.get_width()-(img.get_width()+self.position))+(img.get_width()-2),1),2)
+                    pygame.draw.line(self.game.display,(240,240,240),(self.game.display.get_width()-(img.get_width()+self.position),1), ((self.game.display.get_width()-(img.get_width()+self.position))+(img.get_width()-2),1),2)
                     self.position += img.get_width()+20
                 else:
                     surf = pygame.mask.from_surface(gun.gun_img)
-                    img = surf.to_surface(setcolor=self.selected_color)
+                    img = surf.to_surface(setcolor=(255,255,255))
                     img = pygame.transform.scale(img,(round(img.get_width()*1.5),round(img.get_height()*1.5)))
                     img.set_colorkey((0,0,0))
                     self.game.display.blit(img, (self.game.display.get_width()-(img.get_width()+self.position), 10))
-                    pygame.draw.line(self.game.display,self.selected_color,(self.game.display.get_width()-(img.get_width()+self.position+3),1), ((self.game.display.get_width()-(img.get_width()+self.position))+(img.get_width()-3),1),2)
+                    pygame.draw.line(self.game.display,(255,255,255),(self.game.display.get_width()-(img.get_width()+self.position+3),1), ((self.game.display.get_width()-(img.get_width()+self.position))+(img.get_width()-3),1),2)
                     self.position += img.get_width()+20
 
         if controller_input["active"] == True:
@@ -630,13 +638,13 @@ class Game_manager:
 
             if event.type == MOUSEBUTTONDOWN:
                 if self.show_console == False:
-                    if event.button == 4:
+                    if event.button == 5:
                         self.player.change_weapon(0,decrease=True)
                         if self.zoom > 1 and self.player.equipped_weapon.gun_group != "Snipers":
                             self.zoom = 1
                             self.zoom_index = 0
                             self.change_dims()
-                    if event.button == 5:
+                    if event.button == 4:
                         self.player.change_weapon(0,increase=True)
                         if self.zoom > 1 and self.player.equipped_weapon.gun_group != "Snipers":
                             self.zoom = 1

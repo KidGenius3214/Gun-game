@@ -49,19 +49,6 @@ class Button:
         self.font.render(surf, self.text, text_pos[0], text_pos[1], (255,255,255))
 
 
-class Label:
-    def __init__(self,x,y,font_size,spacing,color):
-        self.x = x
-        self.y = y
-        self.font_size = font_size
-        self.spacing = spacing
-        self.color = color
-        self.font = Text("data/images/font.png",self.spacing,self.font_size)
-
-    def render(self,surf,scroll,text):
-        self.font.render(surf,text,self.x,self.y,self.color)
-
-
 class Text_Input:
     def __init__(self,x,y,font_scale,spacing,text_limit):
         self.x = x

@@ -1,8 +1,9 @@
 Add inventory view ** still working on it **
 Add A Bow
-Add gun changing
 Have a smart AI enemy that can shoot
+add tooltips
 work on melee weapons
+Make level editor more visually pleasing and user freindly
 more consumables:
 More food
 work on multiplayer
