@@ -1,6 +1,7 @@
 # Menu manager
 import pygame
 pygame.init()
+from pygame.locals import *
 from . import *
 import socket,threading,json
 import sys,pickle,subprocess
@@ -64,10 +65,18 @@ class Menu:
         pos = [int(pos[0]/size_dif), int(pos[1]/size_dif)]
 
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
+            if event.type == QUIT:
                 pygame.quit()
                 sys.exit()
-                
+            if event.type == KEYDOWN:
+                if event.key == K_F11:
+                    if self.game.fullscreen != True:
+                        self.game.screen = pygame.display.set_mode((int(self.game.win_dims[0]*self.game.scale),int(self.game.win_dims[1]*self.game.scale)),pygame.FULLSCREEN)
+                        self.game.fullscreen = True
+                    else:
+                        self.game.screen = pygame.display.set_mode((int(self.game.win_dims[0]*self.game.scale),int(self.game.win_dims[1]*self.game.scale)),pygame.RESIZABLE)
+                        self.game.fullscreen = False
+        
         if self.state == "Menu":
             self.play_button.update(self.game.display, pos)
             self.multiplayer_btn.update(self.game.display,pos)
@@ -92,7 +101,6 @@ class Menu:
                 
         if self.state == "Mult_Screen":
             self.LAN_btn.update(self.game.display,pos)
-            self.Online_btn.update(self.game.display,pos)
 
             self.play_button.disabled = True
             self.multiplayer_btn.disabled = True
@@ -100,9 +108,6 @@ class Menu:
             
             if self.LAN_btn.clicked == True and self.clicked == False:
                 self.state = "LAN screen"
-                self.clicked = True
-            if self.Online_btn.clicked == True and self.clicked == False:
-                self.state = "Online screen"
                 self.clicked = True
 
         if self.state == "LAN screen":
@@ -131,8 +136,9 @@ class Menu:
 
                 game_info.append(map_type)
                 items = []
-                for item in data["data"]["guns"]:
-                    items.append([item,"Guns"])
+                for item in data["data"]["items"]:
+                    item.append([0,0])
+                    items.append(item)
 
                 game_info.append(items)
                 game_info.append(map_name)
@@ -142,9 +148,6 @@ class Menu:
                 self.clicked = True
                 
             if self.Join_btn.clicked == True and self.clicked == False:
-                self.search_ip = get_wifi_ip()
-                f_game_thread = threading.Thread(target=self.find_games, name="find_servers")
-                f_game_thread.start()
                 self.game.create_game_manager("Multiplayer")
                 self.game.game_manager.setup_mult(False,5555,"192.168.43.232")
                 self.game.state = 'Play'

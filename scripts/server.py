@@ -1,10 +1,11 @@
 import socket
 import subprocess
-from threading import Thread
+import threading
 import random
 import json
 import os
 import time
+import base64
     
 def setup():
     data = subprocess.run(["ipconfig"],capture_output=True).stdout.decode()#get ip config data as a string
@@ -16,110 +17,157 @@ def setup():
         ip = data_list[data_list.index("Wireless LAN adapter Wi-Fi:\r")+4].lstrip().split("IPv4 Address. . . . . . . . . . . : ")[1].split("\r")[0] #get ip address if connected to a wifi network
     return ip
 
-
-server = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-
-ip = setup()
 MAX_LIMIT = 80
-connections = 0
+TIME_LIMIT = 120
 with open("../data/Game_data/settings.json","r") as file:
     network_data = json.load(file)["networking"]
     file.close()
 
-port = network_data["port"]
+#Packet Definitions
+CONNECTION_PACKET = base64.b64encode(b"Make connection:Gun Game")
+CLOSE_SERVER_PACKET = base64.b64encode(b"CLOSE_SERVER")
 
-gamemode = ""
+class TCPserver:
+    pass
 
-try:
-    server.bind((ip,port))
-    server.listen()
-    if ip == "":
-        server.close()
-        print(1+"hello")
-    print(f"[SERVER] running on ip {ip}")
-    print("[SERVER] Waiting for connections")
-except Exception as e:
-    print(e)
-    print("[SERVER] Can't Connect,please check your port or ip")
-    input("Press any key to quit")
-    quit()
+class UDPserver:
+    def __init__(self):
+        #Setup the socket
+        self.socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.ip = setup()
+        self.port = network_data["port"]
+        self.addr = (self.ip,self.port)
+        self.socket.bind(self.addr)
 
+        #Managment of the server
+        self.connections = 0
+        self._id = 0
+        self.player_limit = 100
+        self.gamemode = ""
+        self.level = ""
+        self.map_type = "NORMAL"
+        self.host = None
+        self.players = {}
+        self.bullets = {}
+        self.items = []
+        self.entities = {}
+        self.maps_path = "../data/maps/"
+        self.spawn_points = [[0,0]]
+        self.addresses = {}
+        self.closed = False
 
-players = {}
-bullets = {}
-items = []
-entities = {}
-_id = 0
-host = None
-level = ""
-map_type = "Normal"
-maps_path = "../data/maps/"
-spawn_points = [[0,0]]
-
-def player_spawn():
-    return random.choice(spawn_points)
-
-def client(conn,_id):
-    global level,players,connections,bullets,items,entities
-
-    current_id = _id
+    def Verify(self):
+        if self.ip == "":
+            self.socket.close()
+            print("[SERVER] IP address is not valid")
+        print(self.addr)
+        #self.socket.bind(self.addr)
+        print(f"[SERVER] Running on IP:{self.ip}")
+        print("[SERVER] Listening for connections")
+        #self.game_thread = threading.Thread(target=self.get_data)
+        #self.game_thread.daemon = True
     
-    while True:
-        try:
-            command = conn.recv(2048*8).decode('utf-8')
-            if command == "get":
-                print(items)
-                data = [players,bullets,items,entities,[map_type,level],_id]
-                conn.send(json.dumps(data).encode())
-            if command.split(':')[0] == "move":
-                pos = [int(command.split(':')[1]),int(command.split(':')[2])]
-                players[_id]["loc"] = pos
-                data = [players,bullets,items,entities]
-                conn.send(json.dumps(data).encode('utf-8'))
-            if command.split(":")[0] == "send_map":
-                game_map = command.split(':')[1]
-                with open(f"{maps_path}custom_maps/{game_map}.level","r") as file:
-                    map_data = pickle.load(file)
-                    file.close()
+    def get_player_spawn(self):
+        return random.choice(self.spawn_points)
+    
+    def disconnect_player(self,_id):
+        print(f"[SERVER] Player {self.players[_id]}  id:{_id} disconnected!")
+        self.connections -= 1
+        del self.players[_id]
+    
+    
+    def RunGame(self):
+        while True:
+            # update the players off time
+            # if a client does not send for some time the server disconnects that client
+            """
+            del_list = []
+            for player_id in self.players:
+                self.players[player_id]["no_send_time"] += time.time()/10000
+                print(self.players[player_id])
+                if self.players[player_id]["no_send_time"] >= TIME_LIMIT:
+                    del_list.append(player_id)
+            
+            for id in del_list:
+                self.disconnect_player(id)
+            """
 
-                map_data = json.loads(map_data).encode('utf-8')
-                conn.send(str(len(map_data)).encode())
-                conn.send(map_data)
+            # Socket stuff
+            print("waiting for data")
+            data,addr = self.socket.recvfrom(2048*8)
+            try:
+                if data == CONNECTION_PACKET:
+                    if self.connections < self.player_limit+1:
+                        self.socket.sendto("Connection Established".encode(), addr)
+                        print("connected")
+                    if self.connections > self.player_limit:
+                        self.socket.sendto("FAILED!".encode(),addr)
+                        print("Game is full")
+                    print("Connection is being made")
+                else:
+                    if data.decode('utf-8').split(':')[0] not in ["update","get","DISCONNECT"]:
+                        self.socket.sendto("FAILED!".encode(),addr)
+                    print("Connection that was made was not approved")
+
+                if data.decode('utf-8').split(';')[0].replace('"',"") == 'CREATE_PLAYER':
+                    print("creating_player")
+                    data_d = json.loads(data)
+                    player_data = json.loads(data_d.split(';')[1])
+                    player_data["loc"] = self.get_player_spawn()
+                    player_data["address"] = addr
+                    player_data["no_send_time"] = 0
+                    self.players[self._id] = player_data
+                    if player_data["is_host"] == True:
+                        self.host = [self._id,addr,self.players[self._id]]
+                        game_data = json.loads(data_d.split(';')[2])
+                        self.gamemode,self.player_limit,self.spawnpoints,self.map_type,self.items,self.level = game_data
+                    self.socket.sendto(json.dumps([player_data["loc"],self._id]).encode(),self.players[self._id]["address"])
+                    self.connections += 1
+                    print(f"[SERVER] {player_data['name']} has connected on id: {self._id}")
+                    self._id += 1
                 
-            if command == 'quit':
+                if data.decode('utf-8').split(':')[0] == "get":
+                    p_id = int(data.decode('utf-8').split(':')[1])
+                    data = [self.players,self.bullets,self.items,self.entities,[self.map_type,self.level],self._id]
+                    self.players[p_id]["no_send_time"] = 0
+                    self.socket.sendto(json.dumps(data).encode(),self.players[p_id]["address"])
+
+                elif data.decode('utf-8').split(":")[0] == "update":
+                    update_info = data.decode('utf-8').split(':')
+                    pos = [int(update_info[1]), int(update_info[2])]
+                    angle = float(update_info[3]) # angle is in radians
+                    p_id = int(update_info[4])
+                    self.players[p_id]["loc"] = pos
+                    self.players[p_id]["angle"] = angle
+                    self.players[p_id]["no_send_time"] = 0
+                    data = [self.players,self.items]
+                    self.socket.sendto(json.dumps(data).encode(),self.players[p_id]["address"])
+                
+                elif data.decode('utf-8').split(':') == "DISCONNECT":
+                    p_id = int(data.decode('utf-8').split(':')[1])
+                    self.disconnect_player(p_id)
+
+                if data == CLOSE_SERVER_PACKET:
+                    if addr == self.host[1]:
+                        for player in self.players:
+                            for i in range(3): # send it three times to make sure the clients recieve the message
+                                self.socket.sendto(base64.b64encode(b"SERVER_CLOSED"),player["address"])
+                        print("Server closed")
+                        raise Exception("Server closed!")
+                    else:
+                        print(addr, "You are not the host!!!")
+            except Exception as e:
+                print(e)
+                self.socket.close()
+                self.closed = True
+            
+            if self.closed == True:
                 break
-        except Exception as e:
-            print(e)
-            break
 
-        time.sleep(0.001)
 
-    #when user disconnects
-    print(f"[SERVER] {players[_id]['name']}-id:{_id} has disconnected")
+Server = UDPserver()
 
-    connections -= 1
-    del players[current_id]
-    conn.close()
-    
-
-while True:
-    conn,addr = server.accept()
-    print(addr,"connected")
-    test_host = conn.recv(1024).decode('utf-8')
-
-    if test_host == "True":
-        host = [_id,addr]
-        conn.send("Send game info".encode('utf-8'))
-        gamemode,player_limit,spawn_points,map_type,items,level = json.loads(conn.recv(2048*8).decode('utf-8'))
-        
-    player_data = json.loads(conn.recv(2048*8).decode('utf-8'))
-    player_data["loc"] = player_spawn()[1]
-    players[_id] = player_data
-    conn.send(json.dumps([player_data["loc"],_id]).encode())
-    connections += 1
-
-    p_thread = Thread(target=client,args=(conn,_id))
-    p_thread.start()
-    print(f"[SERVER] {player_data['name']} has connected on id: {_id}")
-    _id += 1
+Server.Verify()
+#Server.game_thread.start()
+Server.RunGame()

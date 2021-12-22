@@ -11,7 +11,7 @@ class Player(scripts.Entity):
 
         self.game = game
 
-        self.name = ""
+        self.name = "Player"
 
         self.state = "Idle"
         self.gravity = gravity
@@ -43,6 +43,7 @@ class Player(scripts.Entity):
         self.WEAPON_LIMIT = 4
         self.weapon_index = 0
         self.alive = True
+        self.no_space = False
 
         # Inventory stuff
         # First 4 slots are where the weapons are stored
@@ -112,6 +113,7 @@ class Player(scripts.Entity):
             if sort_weapons == True:
                 self.sort_weapons()
             self.equip_weapon()
+            self.no_space = False
 
     def swap_weapon(self,item):
         if item != None:

@@ -4,8 +4,9 @@ import pygame
 from pygame.locals import *
 pygame.init()
 import scripts
-import sys, math, random,json,time
-import json,pickle
+import sys, math, random,time
+import json,pickle,subprocess,threading
+from copy import deepcopy
 
 #get the ip if this play is a host
 def get_wifi_ip():
@@ -101,6 +102,7 @@ class Game_manager:
         self.camera.update(self.player,self.game.display,1) # Make sure the camera is on the player when changing the dimensions
 
     def reset_level(self,level):
+        self.items = []
         self.reload_controller()
         with open(f"data/maps/{level}.level", "rb") as file:
             data = pickle.load(file)
@@ -129,6 +131,7 @@ class Game_manager:
         sword = scripts.Melee_Weapon(self,"Sword")
         item = scripts.Item(self,500,150,"Sword","Melee",self.game.FPS,sword)
         self.items.append(item)
+        self.current_level = level
             
     def handle_controller_input(self):
         controller_states = {
@@ -196,64 +199,7 @@ class Game_manager:
 
         return controller_states
 
-    def setup_mult(self,host,port,ip,game_info=[]):
-        if host == True:
-            self.client = scripts.Client(self.player,port,get_wifi_ip())
-            if self.client.connect() == "Connection_ERROR":
-                return "Connection ERROR!"
-            else:
-                self.hosting = True
-                self.client.send(str(self.hosting))
-                send_data = self.client.recv()
-                if send_data == "Send game info":
-                    time.sleep(0.01) # delay sending more of the data
-                    self.client.send(game_info,json_encode=True)
-                    
-                data = {"loc":[0,0],"name":self.player_name, "health":0,"shield":0,"equipped_gun":{},"inventory":{},"angle":0}
-                self.client.send(data,json_encode=True)
-                pos = self.client.recv(json_encode=True,val=8)
-                self.client.set_id(pos[1])
-                self.player.set_pos(int(pos[0][0])*self.game.TILESIZE,int(pos[0][1])*self.game.TILESIZE)
-                self.client.send("get")
-                self.players,_,items,self.entites,map_type,_ = self.client.recv(json_encode=True,val=15)
-
-                self.console = scripts.Console(self.game,(self.game.display.get_width()-4,25),client=self.client)
-
-                time.sleep(0.01)
-                if map_type[0] == "Custom":
-                    self.client.send(f"send_map:{map_type[1]}")
-
-                    size = int(self.client.recv())
-                    self.level = self.client.recv(json_encode=True,val=int(size+(size*0.5)))
-                else:
-                    self.reset_mult_level(map_type[1],items)
-
-        else:
-            self.client = scripts.Client(self.player,port,ip)
-            if self.client.connect() == "Can't connect":
-                return "Connection ERROR!"
-            else:
-                self.hosting = False
-                self.client.send("False")
-                time.sleep(0.2) # delay sending more of the data
-                data = {"loc":[0,0],"name":self.player_name, "health":0,"shield":0,"equipped_gun":None,"inventory":None,"angle":0}
-                self.client.send(data,json_encode=True)
-                pos = self.client.recv(json_encode=True,val=8)
-                self.client.set_id(pos[1])
-                self.player.set_pos(int(pos[0][0]),int(pos[0][1]))
-                self.client.send("get")
-                self.players,_,items,entites,map_type,_ = self.client.recv(json_encode=True,val=15)
-                time.sleep(0.01)
-                
-                if map_type[0] == "Custom":
-                    self.client.send(f"send_map:{map_type[1]}")
-
-                    size = int(self.client.recv())
-                    self.level = self.client.recv(json_encode=True,val=int(size+(size*0.5)))
-                else:
-                    self.reset_mult_level(map_type[1],items)
-
-    def normal_play(self):
+    def singleplayer_game(self):
         self.game.display.fill((90,90,90))
         self.game.clock.tick(self.game.FPS)
         pos = pygame.mouse.get_pos()
@@ -289,7 +235,7 @@ class Game_manager:
 
         for chunk_id in active_chunks:
             for layer in self.level:
-                if layer not in ['tiles','spawnpoints','guns']:
+                if layer not in ['tiles','spawnpoints','items']:
                     if chunk_id in self.level[layer]:
                         for tile in self.level[layer][chunk_id]:
                             if tile[0] in self.tiles[self.zone]:
@@ -449,8 +395,9 @@ class Game_manager:
                 if item.pickup_cooldown <= 0:
                     if isinstance(item, scripts.Item):
                         if item.item_group in ["Guns","Melee"]:
-                            tooltip = scripts.Tooltip(self.player.rect.topright[0]+5,self.player.rect.y+1,1,1,"E to pickup",(235,235,235))
-                            tooltip.draw(self.game.display,scroll)
+                            if self.player.no_space == False:
+                                tooltip = scripts.Tooltip(self.player.rect.topright[0]+5,self.player.rect.y+1,1,1,"E to pickup",(235,235,235))
+                                tooltip.draw(self.game.display,scroll)
                             if item.dropped == False:
                                 if self.player.equipped_weapon != None:
                                     if item.ref_obj.name == self.player.equipped_weapon.name and item.item_group != "Melee":
@@ -512,11 +459,13 @@ class Game_manager:
         #Render the inventory of the player
         inventory_data = self.player.inventory.get_all_items()
         self.position = 10
+        weapon_count = 0
         for i,weapon_id in enumerate(inventory_data):
             weapon = inventory_data[weapon_id]
             if len(weapon) != 0:
                 weapon = weapon[0].ref_obj
                 if weapon != self.player.equipped_weapon:
+                    weapon_count += 1
                     surf = pygame.mask.from_surface(weapon.img)
                     img = surf.to_surface(setcolor=(240,240,240))
                     img = pygame.transform.scale(img,(img.get_width(),img.get_height()))
@@ -527,6 +476,7 @@ class Game_manager:
                     pygame.draw.line(self.game.display,(240,240,240),(self.game.display.get_width()-(img.get_width()+self.position),1), ((self.game.display.get_width()-(img.get_width()+self.position))+(img.get_width()-2),1),2)
                     self.position += img.get_width()+20
                 else:
+                    weapon_count += 1
                     surf = pygame.mask.from_surface(weapon.img)
                     img = surf.to_surface(setcolor=(255,255,255))
                     img = pygame.transform.scale(img,(round(img.get_width()*1.5),round(img.get_height()*1.5)))
@@ -536,6 +486,9 @@ class Game_manager:
                     self.game.display.blit(img, (self.game.display.get_width()-(img.get_width()+self.position), 10))
                     pygame.draw.line(self.game.display,(255,255,255),(self.game.display.get_width()-(img.get_width()+self.position+3),1), ((self.game.display.get_width()-(img.get_width()+self.position))+(img.get_width()-3),1),2)
                     self.position += img.get_width()+20
+        
+        if weapon_count >= 4:
+            self.player.no_space = True
 
         if controller_input["active"] == True:
             if controller_input["axis_val"][0] > 0.5:
@@ -626,10 +579,10 @@ class Game_manager:
                     
                     if event.key == K_F11:
                         if self.game.fullscreen != True:
-                            screen = pygame.display.set_mode((self.game.win_dims[0]*self.game.scale,self.game.win_dims[1]*self.game.scale),pygame.FULLSCREEN)
+                            self.game.screen = pygame.display.set_mode((int(self.game.win_dims[0]*self.game.scale),int(self.game.win_dims[1]*self.game.scale)),pygame.FULLSCREEN)
                             self.game.fullscreen = True
                         else:
-                            screen = pygame.display.set_mode((self.game.win_dims[0]*self.game.scale,self.game.win_dims[1]*self.game.scale),pygame.RESIZABLE)
+                            self.game.screen = pygame.display.set_mode((int(self.game.win_dims[0]*self.game.scale),int(self.game.win_dims[1]*self.game.scale)),pygame.RESIZABLE)
                             self.game.fullscreen = False
 
                     #Gun changing                      
@@ -694,6 +647,320 @@ class Game_manager:
         self.game.screen.blit(pygame.transform.scale(self.game.display, (self.game.screen.get_width(),self.game.screen.get_height())), (0,0))
         pygame.display.update()
 
+    # Multiplayer setup,managing and gameplay goes here
+    # Setup
+    def setup_mult(self,host,port,ip,game_info=[]):
+        if host == True:
+            self.client = scripts.UDPClient(self.player,port,get_wifi_ip())
+            if self.client.connect() == "Connection_ERROR":
+                return "Connection ERROR!"
+            else:
+                self.hosting = True
+                data = {"loc":[0,0],"name":self.player.name, "health":0,"shield":0,"equipped_gun":{},"inventory":{},"angle":0, "is_host": True, "addr":"0", "no_send_time":0}
+                msg = f"CREATE_PLAYER;{json.dumps(data)};{json.dumps(game_info)}"
+                self.client.send(msg,json_encode=True)
+                pos = self.client.recv(json_encode=True,val=8)
+                self.client.set_id(pos[1])
+                self.player.set_pos(int(pos[0][0])*self.game.TILESIZE,int(pos[0][1])*self.game.TILESIZE)
+                self.client.send(f"get:{self.client.id}")
+                self.players,_,items,self.entites,map_type,_ = self.client.recv(json_encode=True,val=15)
+
+                self.console = scripts.Console(self.game,(self.game.display.get_width()-4,25),client=self.client)
+
+                time.sleep(0.01)
+                if map_type[0] == "Custom":
+                    self.client.send(f"send_map:{map_type[1]}")
+
+                    size = int(self.client.recv())
+                    self.level = self.client.recv(json_encode=True,val=int(size+(size*0.5)))
+                else:
+                    self.reset_multiplayer_level(map_type[1],items)
+
+        else:
+            self.client = scripts.Client(self.player,port,ip)
+            if self.client.connect() == "Can't connect":
+                return "Connection ERROR!"
+            else:
+                self.hosting = False
+                self.client.send("False")
+                time.sleep(0.2) # delay sending more of the data
+                data = {"loc":[0,0],"name":self.player.name, "health":0,"shield":0,"equipped_gun":{},"inventory":{},"angle":0, "is_host": False, "addr":"0", "no_send_time":0}
+                self.client.send(data,json_encode=True)
+                pos = self.client.recv(json_encode=True,val=8)
+                self.client.set_id(pos[1])
+                self.player.set_pos(int(pos[0][0]),int(pos[0][1]))
+                self.client.send("get")
+                self.players,_,items,entites,map_type,_ = self.client.recv(json_encode=True,val=15)
+                time.sleep(0.01)
+                
+                if map_type[0] == "Custom":
+                    self.client.send(f"send_map:{map_type[1]}")
+
+                    size = int(self.client.recv())
+                    self.level = self.client.recv(json_encode=True,val=int(size+(size*0.5)))
+                else:
+                    self.reset_multiplayer_level(map_type[1],items)
+    
+    #Managing
+    def reset_multiplayer_level(self,level,items):
+        self.items = []
+        self.reload_controller()
+        with open(f"data/maps/{level}.level", "rb") as file:
+            data = pickle.load(file)
+            file.close()
+            self.level = data["data"]
+            self.zone = data["zone"]
+            del data
+        
+        for item_id in items:
+            if item_id[0] in self.item_data["Guns"]:
+                gun = scripts.Gun(self,item_id[0],self.weapon_data[item_id[0]],self.game.FPS)
+                item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Guns",self.game.FPS,gun)
+                self.items.append(item)
+            if item_id[0] in self.item_data["Ammo"]:
+                ref_obj = scripts.Ammo(self.game,item_id[0])
+                item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Ammo",self.game.FPS,ref_obj)
+                self.items.append(item)
+            if item_id[0] in self.item_data["Consumables"]:
+                item = scripts.Consumable(self,int(item_id[1][0]*self.game.TILESIZE),int(item_id[1][1]*self.game.TILESIZE),item_id[0])
+                self.items.append(item)
+
+        self.current_level = level
+    
+    def render_game(self,scroll,active_chunks):
+        for item in self.items:
+            x = int(int(item.rect.x/self.game.TILESIZE)/self.game.CHUNKSIZE)
+            y = int(int(item.rect.y/self.game.TILESIZE)/self.game.CHUNKSIZE)
+            chunk_str = f"{x}/{y}"
+            if chunk_str in active_chunks:
+                item.pickup_cooldown -= 1
+                if item.pickup_cooldown < 0:
+                    item.pickup_cooldown = 0
+                item.render(self.game.display,scroll)
+
+        for player_id in self.players:
+            player_data = self.players[player_id]
+            player = scripts.Player(self,int(player_data["loc"][0]),int(player_data["loc"][1]),16,16,100,3,6,0.3)
+            player.draw(self.game.display,scroll)
+    
+    def can_create_items(self,items):
+        for i in range(len(items)):
+            if i < len(self.items):
+                try:
+                    if self.items[i].item_name == items[0][0]:
+                        try:
+                            items.pop(0)
+                        except Exception as e:
+                            print(e)
+                except Exception as e:
+                    print(e)
+                    print(i)
+    
+
+    def create_items(self,items):
+        self.items = []
+        for item_id in items:
+            if item_id[0] in self.item_data["Guns"]:
+                gun = scripts.Gun(self,item_id[0],self.weapon_data[item_id[0]],self.game.FPS)
+                item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Guns",self.game.FPS,gun)
+                item.movement[0] = item_id[2][0]
+                item.movement[1] = item_id[2][1]
+                self.items.append(item)
+            if item_id[0] in self.item_data["Ammo"]:
+                ref_obj = scripts.Ammo(self.game,item_id[0])
+                item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Ammo",self.game.FPS,ref_obj)
+                item.movement[0] = item_id[2][0]
+                item.movement[1] = item_id[2][1]
+                self.items.append(item)
+            if item_id[0] in self.item_data["Consumables"]:
+                item = scripts.Consumable(self,int(item_id[1][0]*self.game.TILESIZE),int(item_id[1][1]*self.game.TILESIZE),item_id[0])
+                item.movement[0] = item_id[2][0]
+                item.movement[1] = item_id[2][1]
+                self.items.append(item)
+    
+    def update_game(self,tiles,scroll,active_chunks):
+        n = 0
+        for item in self.items:
+            x = int(int(item.rect.x/self.game.TILESIZE)/self.game.CHUNKSIZE)
+            y = int(int(item.rect.y/self.game.TILESIZE)/self.game.CHUNKSIZE)
+            chunk_str = f"{x}/{y}"
+            if chunk_str in active_chunks:
+                item.move(tiles)
+            if item.rect.colliderect(self.player.rect):
+                if item.pickup_cooldown <= 0:
+                    if isinstance(item, scripts.Item):
+                        if item.item_group in ["Guns","Melee"]:
+                            if self.player.no_space == False:
+                                tooltip = scripts.Tooltip(self.player.rect.topright[0]+5,self.player.rect.y+1,1,1,"E to pickup",(235,235,235))
+                                tooltip.draw(self.game.display,scroll)
+                            if item.dropped == False:
+                                if self.player.equipped_weapon != None:
+                                    if item.ref_obj.name == self.player.equipped_weapon.name and item.item_group != "Melee":
+                                        if self.player.add_weapon_item(item) == True:
+                                            self.player.equip_weapon()
+                                            self.client.send(f"remove_item:{n}")
+                                            items = self.client.recv(json_encode=True)
+                                            self.create_items(items)
+                                if pygame.key.get_pressed()[self.key_inputs["equip"]] == True:
+                                    if self.player.add_weapon_item(item) == True:
+                                        self.player.equip_weapon()
+                                        self.client.send(f"remove_item:{n}")
+                                        items = self.client.recv(json_encode=True)
+                                        self.create_items(items)
+                                elif pygame.key.get_pressed()[self.key_inputs["change"]] == True: 
+                                    if self.player.swap_weapon(item) == True:
+                                        self.player.equip_weapon()
+                        if item.item_group == "Ammo":
+                            self.player.add_ammo(item,item_remove_list,n)
+                    if isinstance(item,scripts.Consumable):
+                        if item.is_shield == False:
+                            if self.player.health != self.player.max_health:
+                                self.player.add_health(item.value)
+                        else:
+                            if self.player.shield != self.player.max_shield:
+                                self.player.add_shield(item.value)
+            n += 1
+
+    # Gameplay
+    def multiplayer_game(self):
+        self.game.display.fill((90,90,90))
+        self.game.clock.tick(self.game.FPS)
+        pos = pygame.mouse.get_pos()
+        size_dif = float(self.game.screen.get_width()/self.game.display.get_width())
+        self.relative_pos = [int(pos[0]/size_dif), int(pos[1]/size_dif)]
+
+
+        self.camera.update(self.player,self.game.display,10)
+        
+        scroll = [0,0]
+        scroll[0] = self.camera.scroll[0]
+        scroll[1] = self.camera.scroll[1]
+        controller_input = self.handle_controller_input()
+        
+        tiles = []
+        active_chunks = []
+        angle = scripts.find_angle_from_points(self.relative_pos,self.player.get_center(),scroll,[0,0],False)
+
+        if self.moving_aim_axis == True:
+            angle = scripts.find_angle_from_points(self.controller_pos,self.player.get_center(),scroll,[0,0],False)
+
+        chunk_num = self.game.CHUNKSIZE*self.game.TILESIZE
+        chunk_seen_width = round(self.game.display.get_width()/chunk_num)+2
+        chunk_seen_height = round(self.game.display.get_height()/chunk_num)+2
+        
+        for y in range(chunk_seen_height):
+            for x in range(chunk_seen_width):
+                chunk_x = x-1 + round(scroll[0]/(self.game.CHUNKSIZE*self.game.TILESIZE))
+                chunk_y = y-1 + round(scroll[1]/(self.game.CHUNKSIZE*self.game.TILESIZE))
+                chunk_id = f"{chunk_x}/{chunk_y}"
+                active_chunks.append(chunk_id)
+
+        for chunk_id in active_chunks:
+            for layer in self.level:
+                if layer not in ['tiles','spawnpoints','items']:
+                    if chunk_id in self.level[layer]:
+                        for tile in self.level[layer][chunk_id]:
+                            if tile[0] in self.tiles[self.zone]:
+                                if tile[0] not in ['1','2','3']:
+                                    self.game.display.blit(self.tiles[self.zone][tile[0]], (tile[1][0]*self.game.TILESIZE-scroll[0], tile[1][1]*self.game.TILESIZE-scroll[1]))
+                            if tile[0] in ['1','2','3']:
+                                self.game.display.blit(self.tiles[self.zone][tile[0]], (tile[1][0]*self.game.TILESIZE-scroll[0], tile[1][1]*self.game.TILESIZE-3-scroll[1]))
+                            if tile[0] in self.tile_data["collidable"]:
+                                tiles.append(pygame.Rect(tile[1][0]*self.game.TILESIZE, tile[1][1]*self.game.TILESIZE,self.game.TILESIZE,self.game.TILESIZE))
+
+        self.render_game(scroll,active_chunks)
+
+        for chunk_id in active_chunks:
+            if chunk_id in self.level["tiles"]:
+                for tile in self.level["tiles"][chunk_id]:
+                    if tile[0] in self.tiles[self.zone]:
+                        if tile[0] not in ['1','2','3']:
+                            self.game.display.blit(self.tiles[self.zone][tile[0]], (tile[1][0]*self.game.TILESIZE-scroll[0], tile[1][1]*self.game.TILESIZE-scroll[1]))
+                    if tile[0] in ['1','2','3']:
+                        self.game.display.blit(self.tiles[self.zone][tile[0]], (tile[1][0]*self.game.TILESIZE-scroll[0], tile[1][1]*self.game.TILESIZE-3-scroll[1]))
+                    if tile[0] in self.tile_data["collidable"]:
+                        tiles.append(pygame.Rect(tile[1][0]*self.game.TILESIZE, tile[1][1]*self.game.TILESIZE,self.game.TILESIZE,self.game.TILESIZE))
+        
+        self.player.movement(tiles)
+        self.update_game(tiles,scroll,active_chunks)
+
+        if self.moving_aim_axis == True:
+            scripts.blit_center(self.game.display,self.game.controller_cursor,self.controller_pos)
+        else:
+            scripts.blit_center(self.game.display,self.game.controller_cursor,self.relative_pos)
+
+        for event in pygame.event.get():
+            self.event = event
+            if self.show_console == True:
+                self.console.get_event(event)
+                
+            if event.type == pygame.QUIT:
+                self.client.send("quit")
+                pygame.quit()
+                sys.exit()
+            if event.type == KEYDOWN:
+                if event.key == K_ESCAPE:
+                    self.show_console = False
+                    
+                if self.show_console == False:
+                    if event.key == self.key_inputs["left"]:
+                        self.player.left = True
+                    if event.key == self.key_inputs["right"]:
+                        self.player.right = True
+                    if event.key == self.key_inputs["jump"]:
+                        if self.player.jump_count < 2 and self.player.on_wall == False:
+                            self.player.vel_y = -self.player.jump
+                            self.player.jump_count += 1
+                        if self.player.on_wall == True and self.player.collisions["bottom"] == False:
+                            self.player.wall_jump_true = True
+                            self.player.jump_count = 1
+                    if event.key == self.key_inputs["drop"]:
+                        self.player.drop_weapon()
+                        item = self.items[-1]
+                        item_data = [item.item_name,[item.rect.x,item.rect.y], [item.movement[0],item.movement[1]]] # Items have a name,pos,movement
+                        self.client.send('add_item:'+json.dumps(item_data))
+                    if event.key == K_LALT:
+                        self.alt_key = True
+                    if event.key == K_RALT:
+                        self.alt_key = True
+                    if event.key == K_c:
+                        if self.alt_key == True:
+                            self.show_console = True
+                    
+                    if event.key == K_F11:
+                        if self.game.fullscreen != True:
+                            self.game.screen = pygame.display.set_mode((int(self.game.win_dims[0]*self.game.scale),int(self.game.win_dims[1]*self.game.scale)),pygame.FULLSCREEN)
+                            self.game.fullscreen = True
+                        else:
+                            self.game.screen = pygame.display.set_mode((int(self.game.win_dims[0]*self.game.scale),int(self.game.win_dims[1]*self.game.scale)),pygame.RESIZABLE)
+                            self.game.fullscreen = False
+                        
+            if event.type == KEYUP:
+                if self.show_console == False:
+                    if event.key == K_a:
+                        self.player.left = False
+                    if event.key == K_d:
+                        self.player.right = False
+                    if event.key == K_LALT:
+                        self.alt_key = False
+                    if event.key == K_RALT:
+                        self.alt_key = False
+        
+
+        command = f"update:{self.player.rect.x}:{self.player.rect.y}:{angle}:{self.client.id}"
+        self.client.send(command)
+        data = self.client.recv(json_encode=True,val=3)
+        if data not in ["No data","Server is closed!"]:
+            self.players = data[0]
+        else:
+            if data == "Server is closed!":
+                self.game.state = "Menu"
+
+        self.game.screen.blit(pygame.transform.scale(self.game.display, (self.game.screen.get_width(),self.game.screen.get_height())), (0,0))
+        pygame.display.update()
+
     def run(self):
         if self.play_type == "Singleplayer":
-            self.normal_play()
+            self.singleplayer_game()
+        if self.play_type == "Multiplayer":
+            self.multiplayer_game()

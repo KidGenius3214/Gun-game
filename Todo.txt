@@ -1,4 +1,3 @@
-Add inventory view ** still working on it **
 Add A Bow
 Have a smart AI enemy that can shoot
 work on melee weapons
@@ -7,7 +6,6 @@ more consumables:
 More food
 work on multiplayer
 add enemy spawing
-work on item physics
 Work on park city background
 Work on Game GUI
 Add the Card System (Powerups,buffs,weapon upgrades, weapon descriptions)
@@ -15,3 +13,5 @@ work on gun upgrading system
 work on in game money system
 Add the first game mode to multiplayer
 Add a Co-op
+add a little reload indicator (bullets dropping, particles falling)
+Add an RPG (Rocket launcher) with explosions
