@@ -79,6 +79,10 @@ class Game:
     def create_game_manager(self,play_type):
         pygame.mouse.set_visible(False) #Hide mouse cursor
         self.game_manager = Game_manager(self,play_type)
+    
+    def create_menu_manager(self):
+        pygame.mouse.set_visible(True) #Hide mouse cursor
+        self.menu_manager = Menu(self)
 
     def create_Level_editor(self):
         self.level_editor = Level_Editor(self)

@@ -4,7 +4,7 @@ import pygame
 from pygame.locals import *
 pygame.init()
 import scripts
-import sys, math, random,time
+import sys, math, random,time,base64
 import json,pickle,subprocess,threading
 from copy import deepcopy
 
@@ -613,6 +613,23 @@ class Game_manager:
                             self.zoom = 1
                             self.zoom_index = 0
                             self.change_dims()
+            
+            if event.type == KEYUP:
+                if self.show_console == False:
+                    if event.key == K_a:
+                        self.player.left = False
+                    if event.key == K_d:
+                        self.player.right = False
+                    if event.key == K_LALT:
+                        self.alt_key = False
+                    if event.key == K_RALT:
+                        self.alt_key = False
+            
+            if event.type == JOYDEVICEADDED:
+                self.reload_controllers()
+            
+            if event.type == JOYDEVICEREMOVED:
+                self.reload_controllers()
 
             if event.type == MOUSEMOTION:
                 self.controller_pos = list(self.relative_pos)
@@ -632,17 +649,6 @@ class Game_manager:
                             self.zoom = 1
                             self.zoom_index = 0
                             self.change_dims()
-                        
-            if event.type == KEYUP:
-                if self.show_console == False:
-                    if event.key == K_a:
-                        self.player.left = False
-                    if event.key == K_d:
-                        self.player.right = False
-                    if event.key == K_LALT:
-                        self.alt_key = False
-                    if event.key == K_RALT:
-                        self.alt_key = False
                         
         self.game.screen.blit(pygame.transform.scale(self.game.display, (self.game.screen.get_width(),self.game.screen.get_height())), (0,0))
         pygame.display.update()
@@ -667,7 +673,6 @@ class Game_manager:
 
                 self.console = scripts.Console(self.game,(self.game.display.get_width()-4,25),client=self.client)
 
-                time.sleep(0.01)
                 if map_type[0] == "Custom":
                     self.client.send(f"send_map:{map_type[1]}")
 
@@ -677,21 +682,19 @@ class Game_manager:
                     self.reset_multiplayer_level(map_type[1],items)
 
         else:
-            self.client = scripts.Client(self.player,port,ip)
-            if self.client.connect() == "Can't connect":
-                return "Connection ERROR!"
+            self.client = scripts.UDPClient(self.player,port,ip)
+            if self.client.connect() == "Connection_ERROR":
+                self.game.state = "Menu"
             else:
                 self.hosting = False
-                self.client.send("False")
-                time.sleep(0.2) # delay sending more of the data
                 data = {"loc":[0,0],"name":self.player.name, "health":0,"shield":0,"equipped_gun":{},"inventory":{},"angle":0, "is_host": False, "addr":"0", "no_send_time":0}
-                self.client.send(data,json_encode=True)
+                msg = f"CREATE_PLAYER;{json.dumps(data)};{json.dumps(game_info)}"
+                self.client.send(msg,json_encode=True)
                 pos = self.client.recv(json_encode=True,val=8)
                 self.client.set_id(pos[1])
                 self.player.set_pos(int(pos[0][0]),int(pos[0][1]))
-                self.client.send("get")
+                self.client.send(f"get:{self.client.id}")
                 self.players,_,items,entites,map_type,_ = self.client.recv(json_encode=True,val=15)
-                time.sleep(0.01)
                 
                 if map_type[0] == "Custom":
                     self.client.send(f"send_map:{map_type[1]}")
@@ -744,24 +747,40 @@ class Game_manager:
             player.draw(self.game.display,scroll)
     
     def can_create_items(self,items):
+        item_list = []
+        item_r = []
+        item_r_names = []
+        item_obj_r = []
+
+        for item in self.items:
+            item_list.append(item.item_name)
+
         for i in range(len(items)):
-            if i < len(self.items):
-                try:
-                    if self.items[i].item_name == items[0][0]:
-                        try:
-                            items.pop(0)
-                        except Exception as e:
-                            print(e)
-                except Exception as e:
-                    print(e)
-                    print(i)
-    
+            item = items[i]
+            if item[0] in item_list:
+                item_r.append(item)
+                item_r_names.append(item[0])
+                if item_r_names.count(item[0]) > 1:
+                    item_r_names.remove(item[0])
+        
+        count = 0
+        for item in self.items:
+            if item.item_name not in item_r_names:
+                item_obj_r.append(item)
+
+        for item in item_r:
+            items.remove(item)
+        
+        for item in item_obj_r:
+            if item.dropped == False:
+                self.items.remove(item)
 
     def create_items(self,items):
-        self.items = []
         for item_id in items:
             if item_id[0] in self.item_data["Guns"]:
                 gun = scripts.Gun(self,item_id[0],self.weapon_data[item_id[0]],self.game.FPS)
+                if item_id[-1] != []:
+                    pass
                 item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Guns",self.game.FPS,gun)
                 item.movement[0] = item_id[2][0]
                 item.movement[1] = item_id[2][1]
@@ -798,15 +817,11 @@ class Game_manager:
                                     if item.ref_obj.name == self.player.equipped_weapon.name and item.item_group != "Melee":
                                         if self.player.add_weapon_item(item) == True:
                                             self.player.equip_weapon()
-                                            self.client.send(f"remove_item:{n}")
-                                            items = self.client.recv(json_encode=True)
-                                            self.create_items(items)
+                                            self.client.send(f"remove_item:{item.item_name}")
                                 if pygame.key.get_pressed()[self.key_inputs["equip"]] == True:
                                     if self.player.add_weapon_item(item) == True:
                                         self.player.equip_weapon()
-                                        self.client.send(f"remove_item:{n}")
-                                        items = self.client.recv(json_encode=True)
-                                        self.create_items(items)
+                                        self.client.send(f"remove_item:{item.item_name}")
                                 elif pygame.key.get_pressed()[self.key_inputs["change"]] == True: 
                                     if self.player.swap_weapon(item) == True:
                                         self.player.equip_weapon()
@@ -828,7 +843,6 @@ class Game_manager:
         pos = pygame.mouse.get_pos()
         size_dif = float(self.game.screen.get_width()/self.game.display.get_width())
         self.relative_pos = [int(pos[0]/size_dif), int(pos[1]/size_dif)]
-
 
         self.camera.update(self.player,self.game.display,10)
         
@@ -884,6 +898,9 @@ class Game_manager:
         self.player.movement(tiles)
         self.update_game(tiles,scroll,active_chunks)
 
+        if self.show_console == True:
+            self.console.render()
+
         if self.moving_aim_axis == True:
             scripts.blit_center(self.game.display,self.game.controller_cursor,self.controller_pos)
         else:
@@ -895,7 +912,8 @@ class Game_manager:
                 self.console.get_event(event)
                 
             if event.type == pygame.QUIT:
-                self.client.send("quit")
+                self.client.send(f"DISCONNECT:{self.client.id}")
+                self.client.disconnect()
                 pygame.quit()
                 sys.exit()
             if event.type == KEYDOWN:
@@ -915,10 +933,11 @@ class Game_manager:
                             self.player.wall_jump_true = True
                             self.player.jump_count = 1
                     if event.key == self.key_inputs["drop"]:
-                        self.player.drop_weapon()
-                        item = self.items[-1]
-                        item_data = [item.item_name,[item.rect.x,item.rect.y], [item.movement[0],item.movement[1]]] # Items have a name,pos,movement
-                        self.client.send('add_item:'+json.dumps(item_data))
+                        result = self.player.drop_weapon()
+                        if result == True:
+                            item = self.items[-1]
+                            item_data = [item.item_name,[int(item.rect.x/self.game.TILESIZE),int(item.rect.y/self.game.TILESIZE)], [item.movement[0],item.movement[1]], "dropped", []] # Items have a name,pos,movement
+                            self.client.send('add_item;'+json.dumps(item_data))
                     if event.key == K_LALT:
                         self.alt_key = True
                     if event.key == K_RALT:
@@ -945,16 +964,29 @@ class Game_manager:
                         self.alt_key = False
                     if event.key == K_RALT:
                         self.alt_key = False
+            
+            if event.type == JOYDEVICEADDED:
+                self.reload_controllers()
+            
+            if event.type == JOYDEVICEREMOVED:
+                self.reload_controllers()
         
-
-        command = f"update:{self.player.rect.x}:{self.player.rect.y}:{angle}:{self.client.id}"
-        self.client.send(command)
-        data = self.client.recv(json_encode=True,val=3)
-        if data not in ["No data","Server is closed!"]:
-            self.players = data[0]
+        
+        if self.client.connected == True:
+            command = f"update:{self.player.rect.x}:{self.player.rect.y}:{angle}:{self.client.id}"
+            self.client.send(command)
+            data = self.client.recv(json_encode=True,val=3)
+            if data not in ["No data","Server is closed!"]:
+                self.players = data[0]
+                items = data[1]
+                self.can_create_items(items)
+                self.create_items(items)
+            else:
+                if data == "Server is closed!":
+                    self.game.state = "Menu"
         else:
-            if data == "Server is closed!":
-                self.game.state = "Menu"
+            self.game.create_menu_manager()
+            self.game.state = "Menu"
 
         self.game.screen.blit(pygame.transform.scale(self.game.display, (self.game.screen.get_width(),self.game.screen.get_height())), (0,0))
         pygame.display.update()

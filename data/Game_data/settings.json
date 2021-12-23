@@ -1,1 +1,1 @@
-{"Player_name":"Player", "networking":{"port":5555}, "video_settings":[2,false]}
+{"Player_name":"Player", "networking":{"port":5555, "protocol":"UDP"}, "video_settings":[2,false]}

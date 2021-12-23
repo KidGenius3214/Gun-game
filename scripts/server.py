@@ -72,56 +72,40 @@ class UDPserver:
         return random.choice(self.spawn_points)
     
     def disconnect_player(self,_id):
-        print(f"[SERVER] Player {self.players[_id]}  id:{_id} disconnected!")
+        print(f"[SERVER] Player {self.players[_id]['name']}  id:{_id} disconnected!")
         self.connections -= 1
         del self.players[_id]
     
     
     def RunGame(self):
         while True:
-            # update the players off time
-            # if a client does not send for some time the server disconnects that client
-            """
-            del_list = []
-            for player_id in self.players:
-                self.players[player_id]["no_send_time"] += time.time()/10000
-                print(self.players[player_id])
-                if self.players[player_id]["no_send_time"] >= TIME_LIMIT:
-                    del_list.append(player_id)
-            
-            for id in del_list:
-                self.disconnect_player(id)
-            """
-
             # Socket stuff
-            print("waiting for data")
-            data,addr = self.socket.recvfrom(2048*8)
             try:
+                data,addr = self.socket.recvfrom(2048*8)
+                if data.decode('utf-8') == "FIND_GAME:GUN_GAME":
+                    self.socket.sendto("I_AM_HERE".encode(),addr)
+
                 if data == CONNECTION_PACKET:
-                    if self.connections < self.player_limit+1:
+                    if self.connections < self.player_limit+1 and self.connections != self.player_limit:
                         self.socket.sendto("Connection Established".encode(), addr)
-                        print("connected")
-                    if self.connections > self.player_limit:
+                    elif self.connections >= self.player_limit:
                         self.socket.sendto("FAILED!".encode(),addr)
                         print("Game is full")
-                    print("Connection is being made")
                 else:
                     if data.decode('utf-8').split(':')[0] not in ["update","get","DISCONNECT"]:
                         self.socket.sendto("FAILED!".encode(),addr)
-                    print("Connection that was made was not approved")
 
                 if data.decode('utf-8').split(';')[0].replace('"',"") == 'CREATE_PLAYER':
-                    print("creating_player")
                     data_d = json.loads(data)
                     player_data = json.loads(data_d.split(';')[1])
-                    player_data["loc"] = self.get_player_spawn()
-                    player_data["address"] = addr
-                    player_data["no_send_time"] = 0
                     self.players[self._id] = player_data
                     if player_data["is_host"] == True:
                         self.host = [self._id,addr,self.players[self._id]]
                         game_data = json.loads(data_d.split(';')[2])
-                        self.gamemode,self.player_limit,self.spawnpoints,self.map_type,self.items,self.level = game_data
+                        self.gamemode,self.player_limit,self.spawn_points,self.map_type,self.items,self.level = game_data
+                    player_data["loc"] = self.get_player_spawn()
+                    player_data["address"] = addr
+                    player_data["no_send_time"] = 0
                     self.socket.sendto(json.dumps([player_data["loc"],self._id]).encode(),self.players[self._id]["address"])
                     self.connections += 1
                     print(f"[SERVER] {player_data['name']} has connected on id: {self._id}")
@@ -144,10 +128,23 @@ class UDPserver:
                     data = [self.players,self.items]
                     self.socket.sendto(json.dumps(data).encode(),self.players[p_id]["address"])
                 
-                elif data.decode('utf-8').split(':') == "DISCONNECT":
+                elif data.decode('utf-8').split(':')[0] == "remove_item":
+                    item_name = data.decode('utf-8').split(':')[1]
+                    print(item_name)
+                    for i,item in enumerate(self.items):
+                        if item_name == item[0]:
+                            print(i)
+                            self.items.pop(i)
+                
+                elif data.decode('utf-8').split(';')[0] == "add_item":
+                    item_data = json.loads(data.decode('utf-8').split(';')[1])
+                    print(item_data)
+                    self.items.insert(-1,item_data)
+                
+                elif data.decode('utf-8').split(':')[0] == "DISCONNECT":
                     p_id = int(data.decode('utf-8').split(':')[1])
                     self.disconnect_player(p_id)
-
+                
                 if data == CLOSE_SERVER_PACKET:
                     if addr == self.host[1]:
                         for player in self.players:
@@ -159,8 +156,6 @@ class UDPserver:
                         print(addr, "You are not the host!!!")
             except Exception as e:
                 print(e)
-                self.socket.close()
-                self.closed = True
             
             if self.closed == True:
                 break

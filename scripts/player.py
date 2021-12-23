@@ -114,6 +114,9 @@ class Player(scripts.Entity):
                 self.sort_weapons()
             self.equip_weapon()
             self.no_space = False
+            return True
+        else:
+            return False
 
     def swap_weapon(self,item):
         if item != None:

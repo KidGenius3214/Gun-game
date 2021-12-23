@@ -8,7 +8,7 @@
 import pygame
 import scripts
 from pygame.locals import *
-
+import json
 
 class Console:
     def __init__(self,game,size,client=None):
@@ -81,9 +81,19 @@ class Console:
             if event.key == K_RETURN:
                 self.commands.insert(0,self.command_input)
                 if self.client != None:
-                    self.client.send(self.command_input)
-                self.run_command(self.command_input)
-                self.command_input = ""
+                    self.send_command(self.command_input)
+                    self.command_input = ""
+                else:
+                    self.run_command(self.command_input)
+                    self.command_input = ""
+    
+    def send_command(self,command):
+        if command.split(' ')[0] == 'spawn':
+            name = command.split(' ')[1].split(':')[1].replace('_',' ')
+            scroll = self.game.game_manager.camera.scroll
+            pos = [self.game.game_manager.relative_pos[0]+scroll[0],self.game.game_manager.relative_pos[1]+scroll[1]]
+            item_data = [name,[int(pos[0]/self.game.TILESIZE),int(pos[1]/self.game.TILESIZE)],[0,0], "normal", [] ]
+            self.client.send("add_item:"+json.dumps(item_data))
 
     def run_command(self,command):
         if command == "revive":

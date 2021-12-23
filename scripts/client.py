@@ -60,7 +60,6 @@ class UDPClient:
         if data.decode('utf-8') == "Connection Established":
             self.connected = True
         else:
-            print(data.decode('utf-8'))
             return "Connection_ERROR"
 
     def disconnect(self):
