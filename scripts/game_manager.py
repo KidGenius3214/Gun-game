@@ -120,6 +120,10 @@ class Game_manager:
                 gun = scripts.Gun(self,item_id[0],self.weapon_data[item_id[0]],self.game.FPS)
                 item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Guns",self.game.FPS,gun)
                 self.items.append(item)
+            if item_id[0] in self.item_data["Melee"]:
+                melee = scripts.Melee_Weapon(self,item_id[0])
+                item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Melee",self.game.FPS,melee)
+                self.items.append(item)
             if item_id[0] in self.item_data["Ammo"]:
                 ref_obj = scripts.Ammo(self.game,item_id[0])
                 item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Ammo",self.game.FPS,ref_obj)
@@ -127,10 +131,7 @@ class Game_manager:
             if item_id[0] in self.item_data["Consumables"]:
                 item = scripts.Consumable(self,int(item_id[1][0]*self.game.TILESIZE),int(item_id[1][1]*self.game.TILESIZE),item_id[0])
                 self.items.append(item)
-        
-        sword = scripts.Melee_Weapon(self,"Sword")
-        item = scripts.Item(self,500,150,"Sword","Melee",self.game.FPS,sword)
-        self.items.append(item)
+
         self.current_level = level
             
     def handle_controller_input(self):
@@ -309,7 +310,7 @@ class Game_manager:
                 else:
                     self.player.equipped_weapon.flip = False
                     self.player.flip = False
-                self.player.equipped_weapon.update(self.game.display,scroll,[self.player.get_center()[0],self.player.get_center()[1]],math.degrees(-angle))
+                self.player.equipped_weapon.update(self.game.display,scroll,[self.player.get_center()[0]+self.player.equipped_weapon.render_offset[0],self.player.get_center()[1]+self.player.equipped_weapon.render_offset[1]],math.degrees(-angle))
                 if pygame.mouse.get_pressed()[0] == True:
                     self.player.equipped_weapon.shoot(self.bullets,"player",[self.player.get_center()[0]+self.player.equipped_weapon.bullet_offset[0],self.player.get_center()[1]+self.player.equipped_weapon.bullet_offset[1]],angle)
                 if controller_input["active"] == True:
@@ -459,13 +460,11 @@ class Game_manager:
         #Render the inventory of the player
         inventory_data = self.player.inventory.get_all_items()
         self.position = 10
-        weapon_count = 0
         for i,weapon_id in enumerate(inventory_data):
             weapon = inventory_data[weapon_id]
             if len(weapon) != 0:
                 weapon = weapon[0].ref_obj
                 if weapon != self.player.equipped_weapon:
-                    weapon_count += 1
                     surf = pygame.mask.from_surface(weapon.img)
                     img = surf.to_surface(setcolor=(240,240,240))
                     img = pygame.transform.scale(img,(img.get_width(),img.get_height()))
@@ -476,7 +475,6 @@ class Game_manager:
                     pygame.draw.line(self.game.display,(240,240,240),(self.game.display.get_width()-(img.get_width()+self.position),1), ((self.game.display.get_width()-(img.get_width()+self.position))+(img.get_width()-2),1),2)
                     self.position += img.get_width()+20
                 else:
-                    weapon_count += 1
                     surf = pygame.mask.from_surface(weapon.img)
                     img = surf.to_surface(setcolor=(255,255,255))
                     img = pygame.transform.scale(img,(round(img.get_width()*1.5),round(img.get_height()*1.5)))
@@ -487,7 +485,7 @@ class Game_manager:
                     pygame.draw.line(self.game.display,(255,255,255),(self.game.display.get_width()-(img.get_width()+self.position+3),1), ((self.game.display.get_width()-(img.get_width()+self.position))+(img.get_width()-3),1),2)
                     self.position += img.get_width()+20
         
-        if weapon_count >= 4:
+        if self.player.weapon_count >= 4:
             self.player.no_space = True
 
         if controller_input["active"] == True:
@@ -662,7 +660,7 @@ class Game_manager:
                 return "Connection ERROR!"
             else:
                 self.hosting = True
-                data = {"loc":[0,0],"name":self.player.name, "health":0,"shield":0,"equipped_gun":{},"inventory":{},"angle":0, "is_host": True, "addr":"0", "no_send_time":0}
+                data = {"loc":[0,0],"name":self.player.name, "health":0,"shield":0,"equipped_weapon":{},"inventory":{},"angle":0, "is_host": True, "addr":"0", "no_send_time":0}
                 msg = f"CREATE_PLAYER;{json.dumps(data)};{json.dumps(game_info)}"
                 self.client.send(msg,json_encode=True)
                 pos = self.client.recv(json_encode=True,val=8)
@@ -687,7 +685,7 @@ class Game_manager:
                 self.game.state = "Menu"
             else:
                 self.hosting = False
-                data = {"loc":[0,0],"name":self.player.name, "health":0,"shield":0,"equipped_gun":{},"inventory":{},"angle":0, "is_host": False, "addr":"0", "no_send_time":0}
+                data = {"loc":[0,0],"name":self.player.name, "health":0,"shield":0,"equipped_weapon":{},"inventory":{},"angle":0, "is_host": False, "addr":"0", "no_send_time":0}
                 msg = f"CREATE_PLAYER;{json.dumps(data)};{json.dumps(game_info)}"
                 self.client.send(msg,json_encode=True)
                 pos = self.client.recv(json_encode=True,val=8)
@@ -720,6 +718,10 @@ class Game_manager:
                 gun = scripts.Gun(self,item_id[0],self.weapon_data[item_id[0]],self.game.FPS)
                 item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Guns",self.game.FPS,gun)
                 self.items.append(item)
+            if item_id[0] in self.item_data["Melee"]:
+                melee = scripts.Melee_Weapon(self,item_id[0])
+                item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Melee",self.game.FPS,melee)
+                self.items.append(item)
             if item_id[0] in self.item_data["Ammo"]:
                 ref_obj = scripts.Ammo(self.game,item_id[0])
                 item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Ammo",self.game.FPS,ref_obj)
@@ -745,6 +747,19 @@ class Game_manager:
             player_data = self.players[player_id]
             player = scripts.Player(self,int(player_data["loc"][0]),int(player_data["loc"][1]),16,16,100,3,6,0.3)
             player.draw(self.game.display,scroll)
+
+    def create_weapon(self,weapon_data):
+        if weapon_data != {}:
+            if weapon_data["type"] == "Gun":
+                gun = scripts.Gun(self,weapon_data["name"],self.weapon_data[weapon_data["name"]],self.game.FPS)
+                gun.ammo = weapon_data["ammo"]
+                gun.ammo_l = weapon_data["ammo_l"]
+                gun.flip = weapon_data["is_flipped"]
+                return gun
+            if weapon_data["type"] == "Melee":
+                melee = scripts.Melee_Weapon(self,weapon_data["name"])
+                melee.is_flipped = weapon_data["is_flipped"]
+                return melee
     
     def can_create_items(self,items):
         item_list = []
@@ -755,6 +770,7 @@ class Game_manager:
         for item in self.items:
             item_list.append(item.item_name)
 
+        count = 0
         for i in range(len(items)):
             item = items[i]
             if item[0] in item_list:
@@ -763,7 +779,6 @@ class Game_manager:
                 if item_r_names.count(item[0]) > 1:
                     item_r_names.remove(item[0])
         
-        count = 0
         for item in self.items:
             if item.item_name not in item_r_names:
                 item_obj_r.append(item)
@@ -777,24 +792,33 @@ class Game_manager:
 
     def create_items(self,items):
         for item_id in items:
+            print(item_id)
             if item_id[0] in self.item_data["Guns"]:
                 gun = scripts.Gun(self,item_id[0],self.weapon_data[item_id[0]],self.game.FPS)
                 if item_id[-1] != []:
                     pass
-                item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Guns",self.game.FPS,gun)
+                item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Guns",self.game.FPS,gun)
+                item.movement[0] = item_id[2][0]
+                item.movement[1] = item_id[2][1]
+                self.items.append(item)
+            if item_id[0] in self.item_data["Melee"]:
+                melee = scripts.Melee_Weapon(self,item_id[0])
+                if item_id[-1] != []:
+                    pass
+                item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Melee",self.game.FPS,melee)
                 item.movement[0] = item_id[2][0]
                 item.movement[1] = item_id[2][1]
                 self.items.append(item)
             if item_id[0] in self.item_data["Ammo"]:
                 ref_obj = scripts.Ammo(self.game,item_id[0])
-                item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Ammo",self.game.FPS,ref_obj)
+                item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Ammo",self.game.FPS,ref_obj)
                 item.movement[0] = item_id[2][0]
                 item.movement[1] = item_id[2][1]
                 self.items.append(item)
             if item_id[0] in self.item_data["Consumables"]:
-                item = scripts.Consumable(self,int(item_id[1][0]*self.game.TILESIZE),int(item_id[1][1]*self.game.TILESIZE),item_id[0])
-                item.movement[0] = item_id[2][0]
-                item.movement[1] = item_id[2][1]
+                item = scripts.Consumable(self,int(item_id[1][0]),int(item_id[1][1]),item_id[0])
+                item.item_obj.movement[0] = item_id[2][0]
+                item.item_obj.movement[1] = item_id[2][1]
                 self.items.append(item)
     
     def update_game(self,tiles,scroll,active_chunks):
@@ -835,6 +859,16 @@ class Game_manager:
                             if self.player.shield != self.player.max_shield:
                                 self.player.add_shield(item.value)
             n += 1
+        
+        for player_id in self.players:
+            player_data = self.players[player_id]
+            player = scripts.Player(self,int(player_data["loc"][0]),int(player_data["loc"][1]),16,16,100,3,6,0.3)
+            e_weapon = self.create_weapon(player_data["equipped_weapon"])
+            if e_weapon != None:
+                if isinstance(e_weapon,scripts.Gun):
+                    e_weapon.update(self.game.display,scroll,[player.get_center()[0]+e_weapon.render_offset[0], player.get_center()[1]+e_weapon.render_offset[1]],math.degrees(-player_data["angle"]))
+                if isinstance(e_weapon,scripts.Melee_Weapon):
+                    e_weapon.update(self.game.display,scroll,[player.get_center()[0], player.get_center()[1]],math.degrees(-player_data["angle"]))
 
     # Gameplay
     def multiplayer_game(self):
@@ -898,8 +932,71 @@ class Game_manager:
         self.player.movement(tiles)
         self.update_game(tiles,scroll,active_chunks)
 
+        if self.player.equipped_weapon != None:
+            x = self.relative_pos[0]+scroll[0]
+            if self.player.equipped_weapon.weapon_group != "Melee":
+                if x < self.player.get_center()[0]:
+                    self.player.equipped_weapon.flip = True
+                    self.player.flip = True
+                else:
+                    self.player.equipped_weapon.flip = False
+                    self.player.flip = False
+
         if self.show_console == True:
             self.console.render()
+        
+
+        self.game.display.blit(pygame.transform.scale(self.game.health_bar_img,(round((self.game.health_bar_img.get_width()*2)*self.zoom),
+                                                                                round((self.game.health_bar_img.get_height()*2)*self.zoom))),(2,2))
+        health_calc = ((self.player.health*168)/self.player.max_health)
+        pygame.draw.rect(self.game.display,(0,255,0),(4,4,round(health_calc*self.zoom),round(16*self.zoom)))
+
+        self.fonts["font_1"][0].render(self.game.display,f"{self.player.shield}",(self.game.health_bar_img.get_width()*2)+6,2,(127,127,127))
+
+        #Show ammo and gun name
+        if self.player.equipped_weapon != None:
+            color = (255,255,255)
+            if self.player.equipped_weapon.weapon_group != "Melee":
+                ammo_text = f"{self.player.equipped_weapon.ammo}/{self.player.equipped_weapon.ammo_l}"
+            else:
+                ammo_text = "\x00/\x00"
+            if self.player.equipped_weapon.weapon_group != "Melee":
+                if self.player.equipped_weapon.ammo <= 0 and self.player.equipped_weapon.ammo_l <= 0:
+                    color = (255,0,0)
+                
+            self.fonts["font_1"][0].render(self.game.display,ammo_text,2,(self.game.health_bar_img.get_height()*2)+7,color)
+
+
+        #Render the inventory of the player
+        inventory_data = self.player.inventory.get_all_items()
+        self.position = 10
+        for i,weapon_id in enumerate(inventory_data):
+            weapon = inventory_data[weapon_id]
+            if len(weapon) != 0:
+                weapon = weapon[0].ref_obj
+                if weapon != self.player.equipped_weapon:
+                    surf = pygame.mask.from_surface(weapon.img)
+                    img = surf.to_surface(setcolor=(240,240,240))
+                    img = pygame.transform.scale(img,(img.get_width(),img.get_height()))
+                    img.set_colorkey((0,0,0))
+                    if weapon.weapon_group == "Melee":
+                        img = scripts.get_image(img,int(img.get_width()/2),0,int(img.get_width()/2),img.get_height(),1)
+                    self.game.display.blit(img, (self.game.display.get_width()-(img.get_width()+self.position), 10))
+                    pygame.draw.line(self.game.display,(240,240,240),(self.game.display.get_width()-(img.get_width()+self.position),1), ((self.game.display.get_width()-(img.get_width()+self.position))+(img.get_width()-2),1),2)
+                    self.position += img.get_width()+20
+                else:
+                    surf = pygame.mask.from_surface(weapon.img)
+                    img = surf.to_surface(setcolor=(255,255,255))
+                    img = pygame.transform.scale(img,(round(img.get_width()*1.5),round(img.get_height()*1.5)))
+                    img.set_colorkey((0,0,0))
+                    if weapon.weapon_group == "Melee":
+                        img = scripts.get_image(img,int(img.get_width()/2),0,int(img.get_width()/2),img.get_height(),1)
+                    self.game.display.blit(img, (self.game.display.get_width()-(img.get_width()+self.position), 10))
+                    pygame.draw.line(self.game.display,(255,255,255),(self.game.display.get_width()-(img.get_width()+self.position+3),1), ((self.game.display.get_width()-(img.get_width()+self.position))+(img.get_width()-3),1),2)
+                    self.position += img.get_width()+20
+        
+        if self.player.weapon_count >= 4:
+            self.player.no_space = True
 
         if self.moving_aim_axis == True:
             scripts.blit_center(self.game.display,self.game.controller_cursor,self.controller_pos)
@@ -913,6 +1010,8 @@ class Game_manager:
                 
             if event.type == pygame.QUIT:
                 self.client.send(f"DISCONNECT:{self.client.id}")
+                if self.hosting == True:
+                    self.client.send("CLOSE_SERVER")
                 self.client.disconnect()
                 pygame.quit()
                 sys.exit()
@@ -936,8 +1035,48 @@ class Game_manager:
                         result = self.player.drop_weapon()
                         if result == True:
                             item = self.items[-1]
-                            item_data = [item.item_name,[int(item.rect.x/self.game.TILESIZE),int(item.rect.y/self.game.TILESIZE)], [item.movement[0],item.movement[1]], "dropped", []] # Items have a name,pos,movement
+                            item_data = [item.item_name,[int(item.rect.x),int(item.rect.y)], [item.movement[0],item.movement[1]], "dropped", []] # Items have a name,pos,movement
                             self.client.send('add_item;'+json.dumps(item_data))
+                    if event.key == self.key_inputs["sniper_zoom"]:
+                        if self.player.equipped_weapon != None:
+                            if self.player.equipped_weapon.weapon_group == "Snipers":
+                                if self.zoom_index < len(self.player.equipped_weapon.zoom_dis):
+                                    self.zoom = self.player.equipped_weapon.zoom_dis[self.zoom_index]
+                                self.zoom_index += 1
+                                if self.zoom_index > len(self.player.equipped_weapon.zoom_dis):
+                                    self.zoom = 1
+                                    self.zoom_index = 0
+                                self.change_dims()
+                    
+                    #Gun changing                      
+                    if event.key == K_1:
+                        self.player.change_weapon(0)
+                        if self.zoom > 1 and self.player.equipped_weapon.weapon_group != "Snipers":
+                            self.zoom = 1
+                            self.zoom_index = 0
+                            self.change_dims()
+                        
+                    if event.key == K_2:
+                       self.player.change_weapon(1)
+                       if self.zoom > 1 and self.player.equipped_weapon.weapon_group != "Snipers":
+                           self.zoom = 1
+                           self.zoom_index = 0
+                           self.change_dims()
+                           
+                    if event.key == K_3:
+                        self.player.change_weapon(2)
+                        if self.zoom > 1 and self.player.equipped_weapon.weapon_group != "Snipers":
+                            self.zoom = 1
+                            self.zoom_index = 0
+                            self.change_dims()
+                            
+                    if event.key == K_4:
+                        self.player.change_weapon(3)
+                        if self.zoom > 1 and self.player.equipped_weapon.weapon_group != "Snipers":
+                            self.zoom = 1
+                            self.zoom_index = 0
+                            self.change_dims()
+
                     if event.key == K_LALT:
                         self.alt_key = True
                     if event.key == K_RALT:
@@ -970,10 +1109,35 @@ class Game_manager:
             
             if event.type == JOYDEVICEREMOVED:
                 self.reload_controllers()
-        
+            
+            if event.type == MOUSEMOTION:
+                self.controller_pos = list(self.relative_pos)
+                self.moving_aim_axis = False
+
+            if event.type == MOUSEBUTTONDOWN:
+                if self.show_console == False:
+                    if event.button == 5:
+                        self.player.change_weapon(0,decrease=True)
+                        if self.zoom > 1 and self.player.equipped_weapon.weapon_group != "Snipers":
+                            self.zoom = 1
+                            self.zoom_index = 0
+                            self.change_dims()
+                    if event.button == 4:
+                        self.player.change_weapon(0,increase=True)
+                        if self.zoom > 1 and self.player.equipped_weapon.weapon_group != "Snipers":
+                            self.zoom = 1
+                            self.zoom_index = 0
+                            self.change_dims()
         
         if self.client.connected == True:
-            command = f"update:{self.player.rect.x}:{self.player.rect.y}:{angle}:{self.client.id}"
+            if self.player.equipped_weapon != None:
+                if self.player.equipped_weapon.weapon_group != "Melee":
+                    equipped_weapon = {"type": "Gun", "name":self.player.equipped_weapon.name,"ammo":self.player.equipped_weapon.ammo, "ammo_l":self.player.equipped_weapon.ammo_l, "is_flipped":self.player.equipped_weapon.flip}
+                else:
+                    equipped_weapon = {"type":"Melee", "name":self.player.equipped_weapon.name,"is_flipped":self.player.equipped_weapon.flip}
+            else:
+                equipped_weapon = {}
+            command = f"update;{self.player.rect.x};{self.player.rect.y};{angle};{json.dumps(equipped_weapon)};{self.client.id}" # update has position,angle,equipped_weapon and the client id
             self.client.send(command)
             data = self.client.recv(json_encode=True,val=3)
             if data not in ["No data","Server is closed!"]:

@@ -192,6 +192,7 @@ class Menu:
                     item.append([0,0])
                     item.append("normal")
                     item.append([])
+                    print(item)
                     items.append(item)
 
                 game_info.append(items)

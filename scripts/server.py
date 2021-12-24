@@ -61,12 +61,10 @@ class UDPserver:
         if self.ip == "":
             self.socket.close()
             print("[SERVER] IP address is not valid")
-        print(self.addr)
-        #self.socket.bind(self.addr)
+            return False
         print(f"[SERVER] Running on IP:{self.ip}")
         print("[SERVER] Listening for connections")
-        #self.game_thread = threading.Thread(target=self.get_data)
-        #self.game_thread.daemon = True
+        return True
     
     def get_player_spawn(self):
         return random.choice(self.spawn_points)
@@ -90,7 +88,6 @@ class UDPserver:
                         self.socket.sendto("Connection Established".encode(), addr)
                     elif self.connections >= self.player_limit:
                         self.socket.sendto("FAILED!".encode(),addr)
-                        print("Game is full")
                 else:
                     if data.decode('utf-8').split(':')[0] not in ["update","get","DISCONNECT"]:
                         self.socket.sendto("FAILED!".encode(),addr)
@@ -117,23 +114,23 @@ class UDPserver:
                     self.players[p_id]["no_send_time"] = 0
                     self.socket.sendto(json.dumps(data).encode(),self.players[p_id]["address"])
 
-                elif data.decode('utf-8').split(":")[0] == "update":
-                    update_info = data.decode('utf-8').split(':')
+                elif data.decode('utf-8').split(";")[0] == "update":
+                    update_info = data.decode('utf-8').split(';')
                     pos = [int(update_info[1]), int(update_info[2])]
                     angle = float(update_info[3]) # angle is in radians
-                    p_id = int(update_info[4])
+                    e_weapon = json.loads(update_info[4]) # The equipped weapon
+                    p_id = int(update_info[-1])
                     self.players[p_id]["loc"] = pos
                     self.players[p_id]["angle"] = angle
                     self.players[p_id]["no_send_time"] = 0
+                    self.players[p_id]["equipped_weapon"] = e_weapon
                     data = [self.players,self.items]
                     self.socket.sendto(json.dumps(data).encode(),self.players[p_id]["address"])
                 
                 elif data.decode('utf-8').split(':')[0] == "remove_item":
                     item_name = data.decode('utf-8').split(':')[1]
-                    print(item_name)
                     for i,item in enumerate(self.items):
                         if item_name == item[0]:
-                            print(i)
                             self.items.pop(i)
                 
                 elif data.decode('utf-8').split(';')[0] == "add_item":
@@ -145,15 +142,16 @@ class UDPserver:
                     p_id = int(data.decode('utf-8').split(':')[1])
                     self.disconnect_player(p_id)
                 
-                if data == CLOSE_SERVER_PACKET:
-                    if addr == self.host[1]:
-                        for player in self.players:
-                            for i in range(3): # send it three times to make sure the clients recieve the message
-                                self.socket.sendto(base64.b64encode(b"SERVER_CLOSED"),player["address"])
-                        print("Server closed")
-                        raise Exception("Server closed!")
-                    else:
-                        print(addr, "You are not the host!!!")
+                if isinstance(data,bytes) == True:
+                    if base64.b64encode(data) == CLOSE_SERVER_PACKET:
+                        if addr == self.host[1]:
+                            for player in self.players:
+                                for i in range(3): # send it three times to make sure the clients recieve the message
+                                    self.socket.sendto(base64.b64encode(b"SERVER_CLOSED"),player["address"])
+                            print("Server closed")
+                            self.closed = True
+                        else:
+                            print(addr, "You are not the host!!!")
             except Exception as e:
                 print(e)
             
@@ -163,6 +161,5 @@ class UDPserver:
 
 Server = UDPserver()
 
-Server.Verify()
-#Server.game_thread.start()
-Server.RunGame()
+if Server.Verify() == True:
+    Server.RunGame()

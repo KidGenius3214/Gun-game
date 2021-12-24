@@ -42,6 +42,7 @@ class Player(scripts.Entity):
         self.equipped_weapon = None
         self.WEAPON_LIMIT = 4
         self.weapon_index = 0
+        self.weapon_count = 0
         self.alive = True
         self.no_space = False
 
@@ -54,12 +55,16 @@ class Player(scripts.Entity):
         if len(free_slots) != 0:
             if free_slots[0] < self.WEAPON_LIMIT:
                 for i in range(self.WEAPON_LIMIT): # First 4 slots are where the weapons are in
-                    gun = self.inventory.inventory[i]
-                    if len(gun) != 0:
-                        if gun[0].ref_obj.weapon_group == item.ref_obj.weapon_group:
-                            if gun[0].ref_obj.ammo != gun[0].ref_obj.gun_info['ammo']:
-                                gun[0].ref_obj.add_ammo(item.ref_obj.ammo)
-                                return True
+                    weapon = self.inventory.inventory[i]
+                    if len(weapon) != 0:
+                        if weapon.item_group != "Melee":
+                            if weapon[0].item_name == item.item_name:
+                                if weapon[0].ref_obj.ammo != weapon[0].ref_obj.gun_info['ammo']:
+                                    weapon[0].ref_obj.add_ammo(item.ref_obj.ammo)
+                                    return True
+                                else:
+                                    return False
+                self.weapon_count += 1
                 return self.inventory.add_item(item,free_slots[0],True)
             else:
                 return False
@@ -95,6 +100,7 @@ class Player(scripts.Entity):
     
     def drop_weapon(self,sort_weapons=True):
         if self.equipped_weapon != None:
+            self.weapon_count -= 1
             item = self.inventory.remove_item(self.weapon_index,return_item=True)[0]
             item.pickup_cooldown = 40
             item.vel_y = 0
@@ -112,6 +118,10 @@ class Player(scripts.Entity):
             self.equipped_weapon = None
             if sort_weapons == True:
                 self.sort_weapons()
+            if self.weapon_index == self.weapon_count:
+                self.weapon_index -= 1
+                if self.weapon_index < 0:
+                    self.weapon_index = 0
             self.equip_weapon()
             self.no_space = False
             return True
