@@ -135,7 +135,6 @@ class UDPserver:
                 
                 elif data.decode('utf-8').split(';')[0] == "add_item":
                     item_data = json.loads(data.decode('utf-8').split(';')[1])
-                    print(item_data)
                     self.items.insert(-1,item_data)
                 
                 elif data.decode('utf-8').split(':')[0] == "DISCONNECT":

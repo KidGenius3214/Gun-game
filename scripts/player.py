@@ -57,7 +57,7 @@ class Player(scripts.Entity):
                 for i in range(self.WEAPON_LIMIT): # First 4 slots are where the weapons are in
                     weapon = self.inventory.inventory[i]
                     if len(weapon) != 0:
-                        if weapon.item_group != "Melee":
+                        if weapon[0].item_group != "Melee":
                             if weapon[0].item_name == item.item_name:
                                 if weapon[0].ref_obj.ammo != weapon[0].ref_obj.gun_info['ammo']:
                                     weapon[0].ref_obj.add_ammo(item.ref_obj.ammo)

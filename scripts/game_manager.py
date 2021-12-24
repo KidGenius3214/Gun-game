@@ -792,12 +792,13 @@ class Game_manager:
 
     def create_items(self,items):
         for item_id in items:
-            print(item_id)
             if item_id[0] in self.item_data["Guns"]:
                 gun = scripts.Gun(self,item_id[0],self.weapon_data[item_id[0]],self.game.FPS)
                 if item_id[-1] != []:
                     pass
                 item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Guns",self.game.FPS,gun)
+                if item_id[3] == "dropped":
+                    item.dropped = True
                 item.movement[0] = item_id[2][0]
                 item.movement[1] = item_id[2][1]
                 self.items.append(item)
@@ -806,17 +807,23 @@ class Game_manager:
                 if item_id[-1] != []:
                     pass
                 item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Melee",self.game.FPS,melee)
+                if item_id[3] == "dropped":
+                    item.dropped = True
                 item.movement[0] = item_id[2][0]
                 item.movement[1] = item_id[2][1]
                 self.items.append(item)
             if item_id[0] in self.item_data["Ammo"]:
                 ref_obj = scripts.Ammo(self.game,item_id[0])
                 item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Ammo",self.game.FPS,ref_obj)
+                if item_id[3] == "dropped":
+                    item.dropped = True
                 item.movement[0] = item_id[2][0]
                 item.movement[1] = item_id[2][1]
                 self.items.append(item)
             if item_id[0] in self.item_data["Consumables"]:
                 item = scripts.Consumable(self,int(item_id[1][0]),int(item_id[1][1]),item_id[0])
+                if item_id[3] == "dropped":
+                    item.dropped = True
                 item.item_obj.movement[0] = item_id[2][0]
                 item.item_obj.movement[1] = item_id[2][1]
                 self.items.append(item)
@@ -1034,7 +1041,7 @@ class Game_manager:
                     if event.key == self.key_inputs["drop"]:
                         result = self.player.drop_weapon()
                         if result == True:
-                            item = self.items[-1]
+                            item = self.items.pop(-1)
                             item_data = [item.item_name,[int(item.rect.x),int(item.rect.y)], [item.movement[0],item.movement[1]], "dropped", []] # Items have a name,pos,movement
                             self.client.send('add_item;'+json.dumps(item_data))
                     if event.key == self.key_inputs["sniper_zoom"]:
