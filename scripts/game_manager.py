@@ -717,17 +717,21 @@ class Game_manager:
             if item_id[0] in self.item_data["Guns"]:
                 gun = scripts.Gun(self,item_id[0],self.weapon_data[item_id[0]],self.game.FPS)
                 item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Guns",self.game.FPS,gun)
+                item.id = item_id[4]
                 self.items.append(item)
             if item_id[0] in self.item_data["Melee"]:
                 melee = scripts.Melee_Weapon(self,item_id[0])
                 item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Melee",self.game.FPS,melee)
+                item.id = item_id[4]
                 self.items.append(item)
             if item_id[0] in self.item_data["Ammo"]:
                 ref_obj = scripts.Ammo(self.game,item_id[0])
                 item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Ammo",self.game.FPS,ref_obj)
+                item.id = item_id[4]
                 self.items.append(item)
             if item_id[0] in self.item_data["Consumables"]:
                 item = scripts.Consumable(self,int(item_id[1][0]*self.game.TILESIZE),int(item_id[1][1]*self.game.TILESIZE),item_id[0])
+                item.id = item_id[4]
                 self.items.append(item)
 
         self.current_level = level
@@ -848,14 +852,16 @@ class Game_manager:
                                     if item.ref_obj.name == self.player.equipped_weapon.name and item.item_group != "Melee":
                                         if self.player.add_weapon_item(item) == True:
                                             self.player.equip_weapon()
-                                            self.client.send(f"remove_item:{item.item_name}")
+                                            print(item.id)
+                                            self.client.send(f"remove_item:{item.id}")
                                 if pygame.key.get_pressed()[self.key_inputs["equip"]] == True:
                                     if self.player.add_weapon_item(item) == True:
                                         self.player.equip_weapon()
-                                        self.client.send(f"remove_item:{item.item_name}")
+                                        self.client.send(f"remove_item:{item.id}")
                                 elif pygame.key.get_pressed()[self.key_inputs["change"]] == True: 
                                     if self.player.swap_weapon(item) == True:
                                         self.player.equip_weapon()
+
                         if item.item_group == "Ammo":
                             self.player.add_ammo(item,item_remove_list,n)
                     if isinstance(item,scripts.Consumable):

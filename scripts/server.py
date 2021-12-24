@@ -128,9 +128,9 @@ class UDPserver:
                     self.socket.sendto(json.dumps(data).encode(),self.players[p_id]["address"])
                 
                 elif data.decode('utf-8').split(':')[0] == "remove_item":
-                    item_name = data.decode('utf-8').split(':')[1]
+                    item_id = int(data.decode('utf-8').split(':')[1])
                     for i,item in enumerate(self.items):
-                        if item_name == item[0]:
+                        if item_id == item[4]:
                             self.items.pop(i)
                 
                 elif data.decode('utf-8').split(';')[0] == "add_item":

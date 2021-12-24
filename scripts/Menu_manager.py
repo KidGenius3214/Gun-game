@@ -4,7 +4,7 @@ pygame.init()
 from pygame.locals import *
 from . import *
 import socket,threading,json
-import sys,pickle,subprocess
+import sys,pickle,subprocess,random
 
 def get_wifi_ip():
     data = subprocess.run(["ipconfig"],capture_output=True).stdout.decode() #get ipconfig data as a string
@@ -191,8 +191,8 @@ class Menu:
                 for item in data["data"]["items"]:
                     item.append([0,0])
                     item.append("normal")
+                    item.append(random.randint(0,1500))
                     item.append([])
-                    print(item)
                     items.append(item)
 
                 game_info.append(items)
