@@ -763,8 +763,9 @@ class Game_manager:
 
         for player_id in self.players:
             player_data = self.players[player_id]
-            player = scripts.Player(self,int(player_data["loc"][0]),int(player_data["loc"][1]),16,16,100,3,6,0.3)
-            player.draw(self.game.display,scroll)
+            player = scripts.Player(self,int(player_data["loc"][0]),int(player_data["loc"][1]),16,16,player_data["health"],3,6,0.3)
+            if player.health > 0:
+                player.draw(self.game.display,scroll)
 
     def create_weapon(self,weapon_data):
         if weapon_data != {}:
@@ -1230,6 +1231,14 @@ class Game_manager:
                             self.change_dims()
 
         if self.client.connected == True:
+            if self.player.alive == False:
+                movements = [[3,-2],[-4,-2],[-4,-3.7],[3,-3.7]]
+                w_count = self.player.weapon_count
+                self.player.drop_all_weapons(movements)
+                for i in range(w_count):
+                    item = self.items.pop(-1)
+                    item_data = [item.item_name,[int(item.rect.x),int(item.rect.y)], [item.movement[0],item.movement[1]], "dropped", item.id, []] # Items have a name,pos,movement
+                    self.client.send("add_item;"+json.dumps(item_data))
             if self.player.equipped_weapon != None:
                 if self.player.equipped_weapon.weapon_group != "Melee":
                     equipped_weapon = {"type": "Gun", "name":self.player.equipped_weapon.name,"ammo":self.player.equipped_weapon.ammo, "ammo_l":self.player.equipped_weapon.ammo_l, "is_flipped":self.player.equipped_weapon.flip}

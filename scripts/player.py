@@ -150,7 +150,12 @@ class Player(scripts.Entity):
                         self.inventory.add_item(temp[0],i+2,True)
     
     def drop_all_weapons(self,movement_list):
-        pass
+        self.weapon_index = 0
+        if self.weapon_count < 0:
+            return False
+        for i in range(self.weapon_count):
+            self.drop_weapon(movement_list[i])
+        return True
     
     def add_ammo(self,item,item_remove_list,index):
         value = item.ref_obj.get_val()
