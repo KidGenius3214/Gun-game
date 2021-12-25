@@ -102,7 +102,7 @@ class Player(scripts.Entity):
         if self.equipped_weapon != None:
             self.weapon_count -= 1
             item = self.inventory.remove_item(self.weapon_index,return_item=True)[0]
-            item.pickup_cooldown = 40
+            item.pickup_cooldown = 100
             item.vel_y = 0
             item.dropped = True
             pos = self.get_center()

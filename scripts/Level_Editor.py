@@ -567,10 +567,10 @@ class Level_Editor:
                     if self.select == True:
                         self.select_done = True
                     self.select = False
-                if self.load_name.selected == False and self.map_name.selected == False:
+                if self.load_name.selected == False and self.map_name.selected == False and self.item_name.selected == False:
                     if event.key == K_w:
                         self.level_num += 1
-                    if event.key == K_s:
+                    if event.key == K_s and self.item_name.selected == False:
                         if self.level_num > 0:
                             self.level_num -= 1
                 if event.key == K_LSHIFT:

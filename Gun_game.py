@@ -26,7 +26,7 @@ class Game:
         self.fullscreen = False
 
         if self.settings['video_settings'][1] == False:
-            self.screen = pygame.display.set_mode((int(self.win_dims[0]*self.scale),int(self.win_dims[1]*self.scale)),pygame.RESIZABLE)
+            self.screen = pygame.display.set_mode((int(self.win_dims[0]*self.scale),int(self.win_dims[1]*self.scale)))
         else:
             self.screen = pygame.display.set_mode((int(self.win_dims[0]*self.scale),int(self.win_dims[1]*self.scale)),pygame.FULLSCREEN)
             self.fullscreen = True

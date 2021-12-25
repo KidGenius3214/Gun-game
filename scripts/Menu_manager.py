@@ -113,7 +113,7 @@ class Menu:
         self.clock.tick(self.game.FPS)
         pos = pygame.mouse.get_pos()
         size_dif = float(self.game.screen.get_width()/self.game.display.get_width())
-        pos = [int(pos[0]/size_dif), int(pos[1]/size_dif)]
+        pos = [round(pos[0]/size_dif), round(pos[1]/size_dif)]
 
         for event in pygame.event.get():
             if event.type == QUIT:
@@ -189,6 +189,8 @@ class Menu:
                 game_info.append(map_type)
                 items = []
                 for item in data["data"]["items"]:
+                    item[1][0] *= self.game.TILESIZE
+                    item[1][1] *= self.game.TILESIZE
                     item.append([0,0])
                     item.append("normal")
                     item.append(random.randint(0,1500))
@@ -227,6 +229,5 @@ class Menu:
             if self.click_tick <= 0:
                 self.clicked = False
                 self.click_tick = 30
-
         self.game.screen.blit(pygame.transform.scale(self.game.display, (self.game.screen.get_width(),self.game.screen.get_height())), (0,0))
         pygame.display.update()

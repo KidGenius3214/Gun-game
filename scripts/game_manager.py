@@ -49,7 +49,7 @@ class Game_manager:
         self.item_data = self.game.item_info
         self.key_inputs = self.game.key_inputs
         self.camera = scripts.Camera()
-
+        self.time = 0
         #Fonts
         self.font1 = scripts.Text("data/images/font.png",1,3)
         self.font1_x1_5 = scripts.Text("data/images/font.png", round(1*1.5), round(3*1.5))
@@ -716,22 +716,26 @@ class Game_manager:
         for item_id in items:
             if item_id[0] in self.item_data["Guns"]:
                 gun = scripts.Gun(self,item_id[0],self.weapon_data[item_id[0]],self.game.FPS)
-                item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Guns",self.game.FPS,gun)
+                item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Guns",self.game.FPS,gun)
                 item.id = item_id[4]
+                item.update_pos = True
                 self.items.append(item)
             if item_id[0] in self.item_data["Melee"]:
                 melee = scripts.Melee_Weapon(self,item_id[0])
-                item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Melee",self.game.FPS,melee)
+                item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Melee",self.game.FPS,melee)
                 item.id = item_id[4]
+                item.update_pos = True
                 self.items.append(item)
             if item_id[0] in self.item_data["Ammo"]:
                 ref_obj = scripts.Ammo(self.game,item_id[0])
-                item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Ammo",self.game.FPS,ref_obj)
+                item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Ammo",self.game.FPS,ref_obj)
                 item.id = item_id[4]
+                item.update_pos = True
                 self.items.append(item)
             if item_id[0] in self.item_data["Consumables"]:
-                item = scripts.Consumable(self,int(item_id[1][0]*self.game.TILESIZE),int(item_id[1][1]*self.game.TILESIZE),item_id[0])
+                item = scripts.Consumable(self,item_id[1][0],item_id[1][1],item_id[0])
                 item.id = item_id[4]
+                item.update_pos = True
                 self.items.append(item)
 
         self.current_level = level
@@ -768,31 +772,27 @@ class Game_manager:
     def can_create_items(self,items):
         item_list = []
         item_r = []
-        item_r_names = []
+        item_r_ids = []
         item_obj_r = []
 
         for item in self.items:
-            item_list.append(item.item_name)
+            item_list.append(item.id)
 
-        count = 0
         for i in range(len(items)):
             item = items[i]
-            if item[0] in item_list:
+            if item[4] in item_list:
                 item_r.append(item)
-                item_r_names.append(item[0])
-                if item_r_names.count(item[0]) > 1:
-                    item_r_names.remove(item[0])
+                item_r_ids.append(item[4])
         
         for item in self.items:
-            if item.item_name not in item_r_names:
+            if item.id not in item_r_ids:
                 item_obj_r.append(item)
 
         for item in item_r:
             items.remove(item)
         
         for item in item_obj_r:
-            if item.dropped == False:
-                self.items.remove(item)
+            self.items.remove(item)
 
     def create_items(self,items):
         for item_id in items:
@@ -805,6 +805,8 @@ class Game_manager:
                     item.dropped = True
                 item.movement[0] = item_id[2][0]
                 item.movement[1] = item_id[2][1]
+                item.id = item_id[4]
+                item.update_pos = True
                 self.items.append(item)
             if item_id[0] in self.item_data["Melee"]:
                 melee = scripts.Melee_Weapon(self,item_id[0])
@@ -815,6 +817,8 @@ class Game_manager:
                     item.dropped = True
                 item.movement[0] = item_id[2][0]
                 item.movement[1] = item_id[2][1]
+                item.update_pos = True
+                item.id = item_id[4]
                 self.items.append(item)
             if item_id[0] in self.item_data["Ammo"]:
                 ref_obj = scripts.Ammo(self.game,item_id[0])
@@ -823,6 +827,8 @@ class Game_manager:
                     item.dropped = True
                 item.movement[0] = item_id[2][0]
                 item.movement[1] = item_id[2][1]
+                item.update_pos = True
+                item.id = item_id[4]
                 self.items.append(item)
             if item_id[0] in self.item_data["Consumables"]:
                 item = scripts.Consumable(self,int(item_id[1][0]),int(item_id[1][1]),item_id[0])
@@ -830,9 +836,12 @@ class Game_manager:
                     item.dropped = True
                 item.item_obj.movement[0] = item_id[2][0]
                 item.item_obj.movement[1] = item_id[2][1]
+                item.update_pos = True
+                item.id = item_id[4]
                 self.items.append(item)
     
     def update_game(self,tiles,scroll,active_chunks):
+        player = scripts.Player(self,self.players[str(self.client.id)]["loc"][0], self.players[str(self.client.id)]["loc"][1],self.player.rect.width,self.player.rect.height,0,0,0,0)
         n = 0
         for item in self.items:
             x = int(int(item.rect.x/self.game.TILESIZE)/self.game.CHUNKSIZE)
@@ -840,27 +849,27 @@ class Game_manager:
             chunk_str = f"{x}/{y}"
             if chunk_str in active_chunks:
                 item.move(tiles)
-            if item.rect.colliderect(self.player.rect):
+            if item.rect.colliderect(player.rect):
                 if item.pickup_cooldown <= 0:
                     if isinstance(item, scripts.Item):
                         if item.item_group in ["Guns","Melee"]:
                             if self.player.no_space == False:
-                                tooltip = scripts.Tooltip(self.player.rect.topright[0]+5,self.player.rect.y+1,1,1,"E to pickup",(235,235,235))
+                                tooltip = scripts.Tooltip(player.rect.topright[0]+5,player.rect.y+1,1,1,"E to pickup",(235,235,235))
                                 tooltip.draw(self.game.display,scroll)
                             if item.dropped == False:
                                 if self.player.equipped_weapon != None:
                                     if item.ref_obj.name == self.player.equipped_weapon.name and item.item_group != "Melee":
                                         if self.player.add_weapon_item(item) == True:
                                             self.player.equip_weapon()
-                                            print(item.id)
                                             self.client.send(f"remove_item:{item.id}")
                                 if pygame.key.get_pressed()[self.key_inputs["equip"]] == True:
                                     if self.player.add_weapon_item(item) == True:
                                         self.player.equip_weapon()
                                         self.client.send(f"remove_item:{item.id}")
-                                elif pygame.key.get_pressed()[self.key_inputs["change"]] == True: 
-                                    if self.player.swap_weapon(item) == True:
-                                        self.player.equip_weapon()
+                                if pygame.key.get_pressed()[self.key_inputs["change"]] == True:
+                                    if item.dropped != True:
+                                        if self.player.swap_weapon(item) == True:
+                                            self.player.equip_weapon()
 
                         if item.item_group == "Ammo":
                             self.player.add_ammo(item,item_remove_list,n)
@@ -891,8 +900,9 @@ class Game_manager:
         size_dif = float(self.game.screen.get_width()/self.game.display.get_width())
         self.relative_pos = [int(pos[0]/size_dif), int(pos[1]/size_dif)]
 
-        self.camera.update(self.player,self.game.display,10)
-        
+        player = scripts.Player(self,self.players[str(self.client.id)]["loc"][0], self.players[str(self.client.id)]["loc"][1],self.player.rect.width,self.player.rect.height,0,0,0,0)
+
+        self.camera.update(player,self.game.display,10)
         scroll = [0,0]
         scroll[0] = self.camera.scroll[0]
         scroll[1] = self.camera.scroll[1]
@@ -1048,7 +1058,7 @@ class Game_manager:
                         result = self.player.drop_weapon()
                         if result == True:
                             item = self.items.pop(-1)
-                            item_data = [item.item_name,[int(item.rect.x),int(item.rect.y)], [item.movement[0],item.movement[1]], "dropped", []] # Items have a name,pos,movement
+                            item_data = [item.item_name,[int(item.rect.x),int(item.rect.y)], [item.movement[0],item.movement[1]], "dropped", item.id, []] # Items have a name,pos,movement
                             self.client.send('add_item;'+json.dumps(item_data))
                     if event.key == self.key_inputs["sniper_zoom"]:
                         if self.player.equipped_weapon != None:
@@ -1160,11 +1170,12 @@ class Game_manager:
                 self.create_items(items)
             else:
                 if data == "Server is closed!":
+                    self.game.create_menu_manager()
                     self.game.state = "Menu"
         else:
             self.game.create_menu_manager()
             self.game.state = "Menu"
-
+            
         self.game.screen.blit(pygame.transform.scale(self.game.display, (self.game.screen.get_width(),self.game.screen.get_height())), (0,0))
         pygame.display.update()
 

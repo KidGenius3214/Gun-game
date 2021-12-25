@@ -6,6 +6,7 @@ import json
 import os
 import time
 import base64
+from copy import deepcopy
     
 def setup():
     data = subprocess.run(["ipconfig"],capture_output=True).stdout.decode()#get ip config data as a string
@@ -127,6 +128,13 @@ class UDPserver:
                     data = [self.players,self.items]
                     self.socket.sendto(json.dumps(data).encode(),self.players[p_id]["address"])
                 
+                elif data.decode("utf-8").split(':')[0] == "update_item_pos":
+                    pos = json.loads(data.decode('utf-8').split(':')[1])
+                    item_id = int(data.decode('utf-8').split(':')[2])
+                    for i,item in enumerate(self.items):
+                        if item_id == item[4]:
+                            self.items[i][1] = pos
+                
                 elif data.decode('utf-8').split(':')[0] == "remove_item":
                     item_id = int(data.decode('utf-8').split(':')[1])
                     for i,item in enumerate(self.items):
@@ -146,11 +154,12 @@ class UDPserver:
                         if addr == self.host[1]:
                             for player in self.players:
                                 for i in range(3): # send it three times to make sure the clients recieve the message
-                                    self.socket.sendto(base64.b64encode(b"SERVER_CLOSED"),player["address"])
+                                    self.socket.sendto(base64.b64encode(b"SERVER_CLOSED"),self.players[player]["address"])
                             print("Server closed")
                             self.closed = True
                         else:
                             print(addr, "You are not the host!!!")
+                
             except Exception as e:
                 print(e)
             
