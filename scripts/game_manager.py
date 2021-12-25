@@ -310,9 +310,9 @@ class Game_manager:
                 else:
                     self.player.equipped_weapon.flip = False
                     self.player.flip = False
-                self.player.equipped_weapon.update(self.game.display,scroll,[self.player.get_center()[0]+self.player.equipped_weapon.render_offset[0],self.player.get_center()[1]+self.player.equipped_weapon.render_offset[1]],math.degrees(-angle))
+                self.player.equipped_weapon.update(self.game.display,scroll,self.player.get_center(),math.degrees(-angle))
                 if pygame.mouse.get_pressed()[0] == True:
-                    self.player.equipped_weapon.shoot(self.bullets,"player",[self.player.get_center()[0]+self.player.equipped_weapon.bullet_offset[0],self.player.get_center()[1]+self.player.equipped_weapon.bullet_offset[1]],angle)
+                    self.player.equipped_weapon.shoot(self.bullets,"player",self.player.get_center(),angle)
                 if controller_input["active"] == True:
                     x = self.controller_pos[0]+scroll[0]
                     if x < self.player.get_center()[0]:
@@ -322,7 +322,7 @@ class Game_manager:
                         self.player.equipped_weapon.flip = False
                         self.player.flip = False
                     if controller_input["buttons"]["shoot"] == True:
-                        self.player.equipped_weapon.shoot(self.bullets,"player",[self.player.get_center()[0]+self.player.equipped_weapon.bullet_offset[0],self.player.get_center()[1]+self.player.equipped_weapon.bullet_offset[1]],angle)
+                        self.player.equipped_weapon.shoot(self.bullets,"player",self.player.get_center(),angle)
             if self.player.equipped_weapon.weapon_group == "Melee":
                 if x < self.player.get_center()[0]:
                     self.player.equipped_weapon.flip = True
@@ -554,7 +554,12 @@ class Game_manager:
                         if self.alt_key == True:
                             self.show_console = True
                     if event.key == self.key_inputs["drop"]:
-                        self.player.drop_weapon()
+                        movement = [0,0]
+                        if self.player.flip == True:
+                            movement = [-6,-2]
+                        else:
+                            movement = [4,-2]
+                        self.player.drop_weapon(movement)
                             
                     if event.key == self.key_inputs["sniper_zoom"]:
                         if self.player.equipped_weapon != None:
@@ -660,7 +665,7 @@ class Game_manager:
                 return "Connection ERROR!"
             else:
                 self.hosting = True
-                data = {"loc":[0,0],"name":self.player.name, "health":0,"shield":0,"equipped_weapon":{},"inventory":{},"angle":0, "is_host": True, "addr":"0", "no_send_time":0}
+                data = {"loc":[0,0],"name":self.player.name, "health":self.player.health,"shield":self.player.shield,"equipped_weapon":{},"inventory":{},"angle":0, "is_host": True, "addr":"0", "no_send_time":0}
                 msg = f"CREATE_PLAYER;{json.dumps(data)};{json.dumps(game_info)}"
                 self.client.send(msg,json_encode=True)
                 pos = self.client.recv(json_encode=True,val=8)
@@ -685,7 +690,7 @@ class Game_manager:
                 self.game.state = "Menu"
             else:
                 self.hosting = False
-                data = {"loc":[0,0],"name":self.player.name, "health":0,"shield":0,"equipped_weapon":{},"inventory":{},"angle":0, "is_host": False, "addr":"0", "no_send_time":0}
+                data = {"loc":[0,0],"name":self.player.name, "health":self.player.health,"shield":self.player.shield,"equipped_weapon":{},"inventory":{},"angle":0, "is_host": False, "addr":"0", "no_send_time":0}
                 msg = f"CREATE_PLAYER;{json.dumps(data)};{json.dumps(game_info)}"
                 self.client.send(msg,json_encode=True)
                 pos = self.client.recv(json_encode=True,val=8)
@@ -750,6 +755,11 @@ class Game_manager:
                 if item.pickup_cooldown < 0:
                     item.pickup_cooldown = 0
                 item.render(self.game.display,scroll)
+
+        for bullet in self.bullets:
+            bullet.run(self.game.display,scroll)
+            if bullet.lifetime <= 0:
+                self.client.send("bullet_life_ended:"+str(bullet.id))
 
         for player_id in self.players:
             player_data = self.players[player_id]
@@ -840,9 +850,44 @@ class Game_manager:
                 item.id = item_id[4]
                 self.items.append(item)
     
+    def can_create_bullets(self,bullets):
+        bullet_list = []
+        bullet_r = []
+        bullet_r_ids = []
+        bullet_obj_r = []
+
+        for bullet in self.bullets:
+            bullet_list.append(bullet.id)
+
+        for i in range(len(bullets)):
+            bullet = bullets[i]
+            if bullet[-1] in bullet_list:
+                bullet_r.append(bullet)
+                bullet_r_ids.append(bullet[-1])
+        
+        for bullet in self.bullets:
+            if bullet.id not in bullet_r_ids:
+                bullet_obj_r.append(bullet)
+
+        for bullet in bullet_r:
+            bullets.remove(bullet)
+        
+        for bullet in bullet_obj_r:
+            self.bullets.remove(bullet)
+
+    def create_bullets(self,bullets):
+        for bullet_data in bullets:
+            if bullet_data[10] != None:
+                img = self.game.img_m.load(bullet[10],(255,255,255))
+            else:
+                img = None
+            bullet = scripts.Bullet(bullet_data[0],bullet_data[1],bullet_data[2],bullet_data[3],bullet_data[4],bullet_data[5],bullet_data[7],
+                                    bullet_data[8],bullet_data[9],img,bullet_data[6])
+            bullet.id = bullet_data[-1]
+            self.bullets.append(bullet)
+    
     def update_game(self,tiles,scroll,active_chunks):
         player = scripts.Player(self,self.players[str(self.client.id)]["loc"][0], self.players[str(self.client.id)]["loc"][1],self.player.rect.width,self.player.rect.height,0,0,0,0)
-        n = 0
         for item in self.items:
             x = int(int(item.rect.x/self.game.TILESIZE)/self.game.CHUNKSIZE)
             y = int(int(item.rect.y/self.game.TILESIZE)/self.game.CHUNKSIZE)
@@ -880,8 +925,21 @@ class Game_manager:
                         else:
                             if self.player.shield != self.player.max_shield:
                                 self.player.add_shield(item.value)
-            n += 1
         
+        player = scripts.Player(self,self.players[str(self.client.id)]["loc"][0], self.players[str(self.client.id)]["loc"][1],self.player.rect.width,self.player.rect.height,0,0,0,0) 
+        player_names = []
+        for player_id in self.players:
+            if self.players[player_id]["name"] != self.players[str(self.client.id)]["name"]:
+                player_names.append(self.players[player_id]["name"])
+        for bullet in self.bullets:
+            if bullet.rect.colliderect(player.rect):
+                if self.players[str(bullet.owner)]["name"] in player_names:
+                    self.player.damage(self.players[str(bullet.owner)]["name"],bullet.dmg)
+                    self.client.send("bullet_collide:"+str(bullet.id))
+            for tile in tiles:
+                if tile.colliderect(bullet.rect):
+                    self.client.send("bullet_collide:"+str(bullet.id))
+
         for player_id in self.players:
             player_data = self.players[player_id]
             player = scripts.Player(self,int(player_data["loc"][0]),int(player_data["loc"][1]),16,16,100,3,6,0.3)
@@ -900,7 +958,7 @@ class Game_manager:
         size_dif = float(self.game.screen.get_width()/self.game.display.get_width())
         self.relative_pos = [int(pos[0]/size_dif), int(pos[1]/size_dif)]
 
-        player = scripts.Player(self,self.players[str(self.client.id)]["loc"][0], self.players[str(self.client.id)]["loc"][1],self.player.rect.width,self.player.rect.height,0,0,0,0)
+        player = scripts.Player(self,self.players[str(self.client.id)]["loc"][0], self.players[str(self.client.id)]["loc"][1],self.player.rect.width,self.player.rect.height,self.players[str(self.client.id)]["health"],0,0,0)
 
         self.camera.update(player,self.game.display,10)
         scroll = [0,0]
@@ -954,6 +1012,7 @@ class Game_manager:
         
         self.player.movement(tiles)
         self.update_game(tiles,scroll,active_chunks)
+        self.player.update()
 
         if self.player.equipped_weapon != None:
             x = self.relative_pos[0]+scroll[0]
@@ -964,6 +1023,18 @@ class Game_manager:
                 else:
                     self.player.equipped_weapon.flip = False
                     self.player.flip = False
+                
+                bullets = []
+                bullet_data = []
+                self.player.equipped_weapon.update(self.game.display,scroll,self.player.get_center(),angle,render=False)
+                if pygame.mouse.get_pressed()[0] == True: #Shoot the bullet
+                    self.player.equipped_weapon.shoot(bullets,self.client.id,player.get_center(),self.players[str(self.client.id)]["angle"])
+                    if len(bullets) != 0:
+                        bullet = bullets[0]
+                        bullet_data = [bullet.x,bullet.y,bullet.speed,bullet.angle,bullet.color,bullet.dmg,bullet.grav,bullet.owner,bullet.mult,bullet.lifetime,self.player.equipped_weapon.gun_info["bullet_image"], bullet.id]
+                        del bullet
+                if bullet_data != []:
+                    self.client.send("bullet;"+json.dumps(bullet_data))
 
         if self.show_console == True:
             self.console.render()
@@ -971,7 +1042,7 @@ class Game_manager:
 
         self.game.display.blit(pygame.transform.scale(self.game.health_bar_img,(round((self.game.health_bar_img.get_width()*2)*self.zoom),
                                                                                 round((self.game.health_bar_img.get_height()*2)*self.zoom))),(2,2))
-        health_calc = ((self.player.health*168)/self.player.max_health)
+        health_calc = ((player.health*168)/self.player.max_health)
         pygame.draw.rect(self.game.display,(0,255,0),(4,4,round(health_calc*self.zoom),round(16*self.zoom)))
 
         self.fonts["font_1"][0].render(self.game.display,f"{self.player.shield}",(self.game.health_bar_img.get_width()*2)+6,2,(127,127,127))
@@ -1043,62 +1114,68 @@ class Game_manager:
                     self.show_console = False
                     
                 if self.show_console == False:
-                    if event.key == self.key_inputs["left"]:
-                        self.player.left = True
-                    if event.key == self.key_inputs["right"]:
-                        self.player.right = True
-                    if event.key == self.key_inputs["jump"]:
-                        if self.player.jump_count < 2 and self.player.on_wall == False:
-                            self.player.vel_y = -self.player.jump
-                            self.player.jump_count += 1
-                        if self.player.on_wall == True and self.player.collisions["bottom"] == False:
-                            self.player.wall_jump_true = True
-                            self.player.jump_count = 1
-                    if event.key == self.key_inputs["drop"]:
-                        result = self.player.drop_weapon()
-                        if result == True:
-                            item = self.items.pop(-1)
-                            item_data = [item.item_name,[int(item.rect.x),int(item.rect.y)], [item.movement[0],item.movement[1]], "dropped", item.id, []] # Items have a name,pos,movement
-                            self.client.send('add_item;'+json.dumps(item_data))
-                    if event.key == self.key_inputs["sniper_zoom"]:
-                        if self.player.equipped_weapon != None:
-                            if self.player.equipped_weapon.weapon_group == "Snipers":
-                                if self.zoom_index < len(self.player.equipped_weapon.zoom_dis):
-                                    self.zoom = self.player.equipped_weapon.zoom_dis[self.zoom_index]
-                                self.zoom_index += 1
-                                if self.zoom_index > len(self.player.equipped_weapon.zoom_dis):
-                                    self.zoom = 1
-                                    self.zoom_index = 0
-                                self.change_dims()
-                    
-                    #Gun changing                      
-                    if event.key == K_1:
-                        self.player.change_weapon(0)
-                        if self.zoom > 1 and self.player.equipped_weapon.weapon_group != "Snipers":
-                            self.zoom = 1
-                            self.zoom_index = 0
-                            self.change_dims()
+                    if self.player.alive == True:
+                        if event.key == self.key_inputs["left"]:
+                            self.player.left = True
+                        if event.key == self.key_inputs["right"]:
+                            self.player.right = True
+                        if event.key == self.key_inputs["jump"]:
+                            if self.player.jump_count < 2 and self.player.on_wall == False:
+                                self.player.vel_y = -self.player.jump
+                                self.player.jump_count += 1
+                            if self.player.on_wall == True and self.player.collisions["bottom"] == False:
+                                self.player.wall_jump_true = True
+                                self.player.jump_count = 1
+                        if event.key == self.key_inputs["drop"]:
+                            movement = [0,0]
+                            if self.player.flip == True:
+                                movement = [-6,-2]
+                            else:
+                                movement = [4,-2]
+                            result = self.player.drop_weapon(movement)
+                            if result == True:
+                                item = self.items.pop(-1)
+                                item_data = [item.item_name,[int(item.rect.x),int(item.rect.y)], [item.movement[0],item.movement[1]], "dropped", item.id, []] # Items have a name,pos,movement
+                                self.client.send('add_item;'+json.dumps(item_data))
+                        if event.key == self.key_inputs["sniper_zoom"]:
+                            if self.player.equipped_weapon != None:
+                                if self.player.equipped_weapon.weapon_group == "Snipers":
+                                    if self.zoom_index < len(self.player.equipped_weapon.zoom_dis):
+                                        self.zoom = self.player.equipped_weapon.zoom_dis[self.zoom_index]
+                                    self.zoom_index += 1
+                                    if self.zoom_index > len(self.player.equipped_weapon.zoom_dis):
+                                        self.zoom = 1
+                                        self.zoom_index = 0
+                                    self.change_dims()
                         
-                    if event.key == K_2:
-                       self.player.change_weapon(1)
-                       if self.zoom > 1 and self.player.equipped_weapon.weapon_group != "Snipers":
-                           self.zoom = 1
-                           self.zoom_index = 0
-                           self.change_dims()
-                           
-                    if event.key == K_3:
-                        self.player.change_weapon(2)
-                        if self.zoom > 1 and self.player.equipped_weapon.weapon_group != "Snipers":
-                            self.zoom = 1
-                            self.zoom_index = 0
-                            self.change_dims()
+                        #Gun changing                      
+                        if event.key == K_1:
+                            self.player.change_weapon(0)
+                            if self.zoom > 1 and self.player.equipped_weapon.weapon_group != "Snipers":
+                                self.zoom = 1
+                                self.zoom_index = 0
+                                self.change_dims()
                             
-                    if event.key == K_4:
-                        self.player.change_weapon(3)
-                        if self.zoom > 1 and self.player.equipped_weapon.weapon_group != "Snipers":
-                            self.zoom = 1
-                            self.zoom_index = 0
-                            self.change_dims()
+                        if event.key == K_2:
+                            self.player.change_weapon(1)
+                            if self.zoom > 1 and self.player.equipped_weapon.weapon_group != "Snipers":
+                                self.zoom = 1
+                                self.zoom_index = 0
+                                self.change_dims()
+                            
+                        if event.key == K_3:
+                            self.player.change_weapon(2)
+                            if self.zoom > 1 and self.player.equipped_weapon.weapon_group != "Snipers":
+                                self.zoom = 1
+                                self.zoom_index = 0
+                                self.change_dims()
+                                
+                        if event.key == K_4:
+                            self.player.change_weapon(3)
+                            if self.zoom > 1 and self.player.equipped_weapon.weapon_group != "Snipers":
+                                self.zoom = 1
+                                self.zoom_index = 0
+                                self.change_dims()
 
                     if event.key == K_LALT:
                         self.alt_key = True
@@ -1151,7 +1228,7 @@ class Game_manager:
                             self.zoom = 1
                             self.zoom_index = 0
                             self.change_dims()
-        
+
         if self.client.connected == True:
             if self.player.equipped_weapon != None:
                 if self.player.equipped_weapon.weapon_group != "Melee":
@@ -1160,14 +1237,17 @@ class Game_manager:
                     equipped_weapon = {"type":"Melee", "name":self.player.equipped_weapon.name,"is_flipped":self.player.equipped_weapon.flip}
             else:
                 equipped_weapon = {}
-            command = f"update;{self.player.rect.x};{self.player.rect.y};{angle};{json.dumps(equipped_weapon)};{self.client.id}" # update has position,angle,equipped_weapon and the client id
+            command = f"update;{self.player.rect.x};{self.player.rect.y};{angle};{json.dumps(equipped_weapon)};{self.player.health};{self.player.shield};{self.client.id}" # update has position,angle,equipped_weapon and the client id
             self.client.send(command)
-            data = self.client.recv(json_encode=True,val=3)
+            data = self.client.recv(json_encode=True,val=20)
             if data not in ["No data","Server is closed!"]:
                 self.players = data[0]
                 items = data[1]
+                bullets = data[2]
                 self.can_create_items(items)
+                self.can_create_bullets(bullets)
                 self.create_items(items)
+                self.create_bullets(bullets)
             else:
                 if data == "Server is closed!":
                     self.game.create_menu_manager()

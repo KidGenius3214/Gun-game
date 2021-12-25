@@ -13,7 +13,7 @@ class Item:
         self.item_name = item_name
         self.item_group = item_group
         self.animate = item_info[item_group][item_name][3]
-        self.id = random.randint(0,1500)
+        self.id = random.randint(0,200000)
         if item_group not in ["Melee"]:
             if self.animate == True:
                 self.animations = scripts.Animation()

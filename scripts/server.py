@@ -50,7 +50,8 @@ class UDPserver:
         self.map_type = "NORMAL"
         self.host = None
         self.players = {}
-        self.bullets = {}
+        self.player_addrs = {}
+        self.bullets = []
         self.items = []
         self.entities = {}
         self.maps_path = "../data/maps/"
@@ -78,7 +79,6 @@ class UDPserver:
     
     def RunGame(self):
         while True:
-            # Socket stuff
             try:
                 data,addr = self.socket.recvfrom(2048*8)
                 if data.decode('utf-8') == "FIND_GAME:GUN_GAME":
@@ -96,24 +96,44 @@ class UDPserver:
                 if data.decode('utf-8').split(';')[0].replace('"',"") == 'CREATE_PLAYER':
                     data_d = json.loads(data)
                     player_data = json.loads(data_d.split(';')[1])
+                    for player in self.players:
+                        if self.players[player]["name"] == player_data["name"]:
+                            player_data["name"] += str(self._id)
                     self.players[self._id] = player_data
                     if player_data["is_host"] == True:
                         self.host = [self._id,addr,self.players[self._id]]
                         game_data = json.loads(data_d.split(';')[2])
                         self.gamemode,self.player_limit,self.spawn_points,self.map_type,self.items,self.level = game_data
                     player_data["loc"] = self.get_player_spawn()
-                    player_data["address"] = addr
+                    self.player_addrs[self._id] = {"address":()}
+                    self.player_addrs[self._id]["address"] = addr
                     player_data["no_send_time"] = 0
-                    self.socket.sendto(json.dumps([player_data["loc"],self._id]).encode(),self.players[self._id]["address"])
+                    self.socket.sendto(json.dumps([player_data["loc"],self._id]).encode(),self.player_addrs[self._id]["address"])
                     self.connections += 1
                     print(f"[SERVER] {player_data['name']} has connected on id: {self._id}")
                     self._id += 1
                 
-                if data.decode('utf-8').split(':')[0] == "get":
+                elif data.decode('utf-8').split(':')[0] == "get":
                     p_id = int(data.decode('utf-8').split(':')[1])
                     data = [self.players,self.bullets,self.items,self.entities,[self.map_type,self.level],self._id]
                     self.players[p_id]["no_send_time"] = 0
-                    self.socket.sendto(json.dumps(data).encode(),self.players[p_id]["address"])
+                    self.socket.sendto(json.dumps(data).encode(),self.player_addrs[p_id]["address"])
+                
+                elif data.decode('utf-8').split(';')[0] == "bullet":
+                    bullet_data = json.loads(data.decode('utf-8').split(';')[1])
+                    self.bullets.append(bullet_data)
+                
+                elif data.decode('utf-8').split(':')[0] == "bullet_collide":
+                    b_id = int(data.decode('utf-8').split(':')[1])
+                    for i,bullet in enumerate(self.bullets):
+                        if bullet[-1] == b_id:
+                            self.bullets.remove(bullet)
+                
+                elif data.decode('utf-8').split(':')[0] == "bullet_life_ended":
+                    b_id = int(data.decode('utf-8').split(':')[1])
+                    for i,bullet in enumerate(self.bullets):
+                        if bullet[-1] == b_id:
+                            self.bullets.remove(bullet)
 
                 elif data.decode('utf-8').split(";")[0] == "update":
                     update_info = data.decode('utf-8').split(';')
@@ -123,17 +143,12 @@ class UDPserver:
                     p_id = int(update_info[-1])
                     self.players[p_id]["loc"] = pos
                     self.players[p_id]["angle"] = angle
+                    self.players[p_id]["health"] = int(update_info[5])
+                    self.players[p_id]["shield"] = int(update_info[6])
                     self.players[p_id]["no_send_time"] = 0
                     self.players[p_id]["equipped_weapon"] = e_weapon
-                    data = [self.players,self.items]
-                    self.socket.sendto(json.dumps(data).encode(),self.players[p_id]["address"])
-                
-                elif data.decode("utf-8").split(':')[0] == "update_item_pos":
-                    pos = json.loads(data.decode('utf-8').split(':')[1])
-                    item_id = int(data.decode('utf-8').split(':')[2])
-                    for i,item in enumerate(self.items):
-                        if item_id == item[4]:
-                            self.items[i][1] = pos
+                    data = [self.players,self.items,self.bullets]
+                    self.socket.sendto(json.dumps(data).encode(),self.player_addrs[p_id]["address"])
                 
                 elif data.decode('utf-8').split(':')[0] == "remove_item":
                     item_id = int(data.decode('utf-8').split(':')[1])
@@ -154,7 +169,7 @@ class UDPserver:
                         if addr == self.host[1]:
                             for player in self.players:
                                 for i in range(3): # send it three times to make sure the clients recieve the message
-                                    self.socket.sendto(base64.b64encode(b"SERVER_CLOSED"),self.players[player]["address"])
+                                    self.socket.sendto(base64.b64encode(b"SERVER_CLOSED"),self.player_addrs[player]["address"])
                             print("Server closed")
                             self.closed = True
                         else:

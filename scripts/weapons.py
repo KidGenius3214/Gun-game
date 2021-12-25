@@ -18,6 +18,7 @@ class Bullet:
         self.mult = mult
         self.lifetime = lifetime
         self.img = img
+        self.id = random.randint(0,200000)
         if self.img != None:
             self.rect = pygame.Rect(self.x,self.y,self.img.get_width(),self.img.get_height())
         else:
@@ -106,9 +107,9 @@ class Gun:
                     dmg = random.randint(self.crit_dmg[0],self.crit_dmg[1])
 
                 if self.weapon_group != "Bows":
-                    bullet_list.append(Bullet(pos[0],pos[1],self.speed,angle,(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img))
+                    bullet_list.append(Bullet(pos[0]+self.bullet_offset[0],pos[1]+self.bullet_offset[1],self.speed,angle,(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img))
                 else:
-                    bullet_list.append(Bullet(pos[0],pos[1],self.speed,angle,(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img,self.gun_info["b_grav"]))
+                    bullet_list.append(Bullet(pos[0]+self.bullet_offset[0],pos[1]+self.bullet_offset[1],self.speed,angle,(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img,self.gun_info["b_grav"]))
                     
                 self.ammo_l -= 1
                 self.shot = True
@@ -171,8 +172,9 @@ class Gun:
         if self.ammo > self.gun_info["ammo"]:
             self.ammo = self.gun_info["ammo"]
 
-    def update(self,surf,scroll,pos,angle):
-        self.render(surf,scroll,pos,angle)
+    def update(self,surf,scroll,pos,angle,render=True):
+        if render == True:
+            self.render(surf,scroll,pos,angle)
         if self.ammo <= 0 and self.ammo_l == 0:
             self.has_ammo = False
         

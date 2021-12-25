@@ -20,6 +20,7 @@ class Player(scripts.Entity):
         self.jump_count = 0
         self.flip = False
         self.id = 'Player'
+        self.alive = True
 
         #Health management
         self.health = health
@@ -98,22 +99,17 @@ class Player(scripts.Entity):
             if self.equip_weapon() == False:
                 self.weapon_index = old_index
     
-    def drop_weapon(self,sort_weapons=True):
+    def drop_weapon(self,movement,sort_weapons=True):
         if self.equipped_weapon != None:
             self.weapon_count -= 1
             item = self.inventory.remove_item(self.weapon_index,return_item=True)[0]
-            item.pickup_cooldown = 100
+            item.pickup_cooldown = 15
             item.vel_y = 0
             item.dropped = True
             pos = self.get_center()
             pos[1] -= item.rect.width//2
             item.set_pos(pos)
-            if self.flip == False:
-                item.movement[0] = 4
-                item.movement[1] = -2
-            else:
-                item.movement[0] = -6
-                item.movement[1] = -2
+            item.movement = movement
             self.game.items.append(item)
             self.equipped_weapon = None
             if sort_weapons == True:
@@ -152,6 +148,9 @@ class Player(scripts.Entity):
                     temp = self.inventory.remove_item(self.weapon_index+1,True)
                     if len(temp) != 0:
                         self.inventory.add_item(temp[0],i+2,True)
+    
+    def drop_all_weapons(self,movement_list):
+        pass
     
     def add_ammo(self,item,item_remove_list,index):
         value = item.ref_obj.get_val()
