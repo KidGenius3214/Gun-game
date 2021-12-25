@@ -1030,11 +1030,18 @@ class Game_manager:
                 self.player.equipped_weapon.update(self.game.display,scroll,self.player.get_center(),angle,render=False)
                 if pygame.mouse.get_pressed()[0] == True: #Shoot the bullet
                     self.player.equipped_weapon.shoot(bullets,self.client.id,player.get_center(),self.players[str(self.client.id)]["angle"])
+
                     if len(bullets) != 0:
-                        bullet = bullets[0]
-                        bullet_data = [bullet.x,bullet.y,bullet.speed,bullet.angle,bullet.color,bullet.dmg,bullet.grav,bullet.owner,bullet.mult,bullet.lifetime,self.player.equipped_weapon.gun_info["bullet_image"], bullet.id]
-                        del bullet
-                if bullet_data != []:
+                        if self.player.equipped_weapon.weapon_group != "Shotguns":
+                            bullet = bullets[0]
+                            bullet_data = [bullet.x,bullet.y,bullet.speed,bullet.angle,bullet.color,bullet.dmg,bullet.grav,bullet.owner,bullet.mult,bullet.lifetime,self.player.equipped_weapon.gun_info["bullet_image"], bullet.id]
+                            del bullet
+                        else:
+                            for bullet in bullets:
+                                bullet_data = [bullet.x,bullet.y,bullet.speed,bullet.angle,bullet.color,bullet.dmg,bullet.grav,bullet.owner,bullet.mult,bullet.lifetime,self.player.equipped_weapon.gun_info["bullet_image"], bullet.id]
+                                self.client.send("bullet;"+json.dumps(bullet_data))
+
+                if bullet_data != [] and self.player.equipped_weapon.weapon_group != "Shotguns":
                     self.client.send("bullet;"+json.dumps(bullet_data))
 
         if self.show_console == True:

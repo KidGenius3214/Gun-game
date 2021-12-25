@@ -26,7 +26,7 @@ class Player(scripts.Entity):
         self.health = health
         self.max_health = health
         self.hurt = False
-        self.dmg_timer = 5 #make sure player does not lose an excessive amount of health
+        self.dmg_timer = 0 #make sure player does not lose an excessive amount of health
         self.shield = 0
         self.max_shield = 150
         self.has_shield = self.shield > 0
@@ -260,7 +260,7 @@ class Player(scripts.Entity):
         if self.hurt == True:
             self.dmg_timer -= 1
             if self.dmg_timer < 0:
-                self.dmg_timer = 5
+                self.dmg_timer = 0
                 self.hurt = False
 
         self.has_shield = self.shield > 0
