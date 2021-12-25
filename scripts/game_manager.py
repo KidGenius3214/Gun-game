@@ -658,54 +658,104 @@ class Game_manager:
 
     # Multiplayer setup,managing and gameplay goes here
     # Setup
-    def setup_mult(self,host,port,ip,game_info=[]):
-        if host == True:
-            self.client = scripts.UDPClient(self.player,port,get_wifi_ip())
-            if self.client.connect() == "Connection_ERROR":
-                return "Connection ERROR!"
-            else:
-                self.hosting = True
-                data = {"loc":[0,0],"name":self.player.name, "health":self.player.health,"shield":self.player.shield,"equipped_weapon":{},"inventory":{},"angle":0, "is_host": True, "addr":"0", "no_send_time":0}
-                msg = f"CREATE_PLAYER;{json.dumps(data)};{json.dumps(game_info)}"
-                self.client.send(msg,json_encode=True)
-                pos = self.client.recv(json_encode=True,val=8)
-                self.client.set_id(pos[1])
-                self.player.set_pos(int(pos[0][0])*self.game.TILESIZE,int(pos[0][1])*self.game.TILESIZE)
-                self.client.send(f"get:{self.client.id}")
-                self.players,_,items,self.entites,map_type,_ = self.client.recv(json_encode=True,val=15)
-
-                self.console = scripts.Console(self.game,(self.game.display.get_width()-4,25),client=self.client)
-
-                if map_type[0] == "Custom":
-                    self.client.send(f"send_map:{map_type[1]}")
-
-                    size = int(self.client.recv())
-                    self.level = self.client.recv(json_encode=True,val=int(size+(size*0.5)))
+    def setup_mult(self,host,port,ip,protocol="UDP",game_info=[]):
+        if protocol == "UDP":
+            if host == True:
+                self.client = scripts.UDPClient(port,get_wifi_ip())
+                if self.client.connect() == "Connection_ERROR":
+                    return "Connection ERROR!"
                 else:
-                    self.reset_multiplayer_level(map_type[1],items)
+                    self.hosting = True
+                    data = {"loc":[0,0],"name":self.player.name, "health":self.player.health,"shield":self.player.shield,"equipped_weapon":{},"angle":0, "is_host": True, "addr":"0", "no_send_time":0}
+                    msg = f"CREATE_PLAYER;{json.dumps(data)};{json.dumps(game_info)}"
+                    self.client.send(msg,json_encode=True)
+                    pos = self.client.recv(json_encode=True,val=8)
+                    self.client.set_id(pos[1])
+                    self.player.set_pos(int(pos[0][0])*self.game.TILESIZE,int(pos[0][1])*self.game.TILESIZE)
+                    self.client.send(f"get:{self.client.id}")
+                    self.players,_,items,self.entites,map_type,_ = self.client.recv(json_encode=True,val=15)
 
-        else:
-            self.client = scripts.UDPClient(self.player,port,ip)
-            if self.client.connect() == "Connection_ERROR":
-                self.game.state = "Menu"
+                    self.console = scripts.Console(self.game,(self.game.display.get_width()-4,25),client=self.client)
+
+                    if map_type[0] == "Custom":
+                        self.client.send(f"send_map:{map_type[1]}")
+
+                        size = int(self.client.recv())
+                        self.level = self.client.recv(json_encode=True,val=int(size+(size*0.5)))
+                    else:
+                        self.reset_multiplayer_level(map_type[1],items)
+
             else:
-                self.hosting = False
-                data = {"loc":[0,0],"name":self.player.name, "health":self.player.health,"shield":self.player.shield,"equipped_weapon":{},"inventory":{},"angle":0, "is_host": False, "addr":"0", "no_send_time":0}
-                msg = f"CREATE_PLAYER;{json.dumps(data)};{json.dumps(game_info)}"
-                self.client.send(msg,json_encode=True)
-                pos = self.client.recv(json_encode=True,val=8)
-                self.client.set_id(pos[1])
-                self.player.set_pos(int(pos[0][0]),int(pos[0][1]))
-                self.client.send(f"get:{self.client.id}")
-                self.players,_,items,entites,map_type,_ = self.client.recv(json_encode=True,val=15)
-                
-                if map_type[0] == "Custom":
-                    self.client.send(f"send_map:{map_type[1]}")
-
-                    size = int(self.client.recv())
-                    self.level = self.client.recv(json_encode=True,val=int(size+(size*0.5)))
+                self.client = scripts.UDPClient(port,ip)
+                if self.client.connect() == "Connection_ERROR":
+                    self.game.state = "Menu"
                 else:
-                    self.reset_multiplayer_level(map_type[1],items)
+                    self.hosting = False
+                    data = {"loc":[0,0],"name":self.player.name, "health":self.player.health,"shield":self.player.shield,"equipped_weapon":{},"angle":0, "is_host": False, "addr":"0", "no_send_time":0}
+                    msg = f"CREATE_PLAYER;{json.dumps(data)};{json.dumps(game_info)}"
+                    self.client.send(msg,json_encode=True)
+                    pos = self.client.recv(json_encode=True,val=8)
+                    self.client.set_id(pos[1])
+                    self.player.set_pos(int(pos[0][0]),int(pos[0][1]))
+                    self.client.send(f"get:{self.client.id}")
+                    self.players,_,items,entites,map_type,_ = self.client.recv(json_encode=True,val=15)
+                    
+                    if map_type[0] == "Custom":
+                        self.client.send(f"send_map:{map_type[1]}")
+
+                        size = int(self.client.recv())
+                        self.level = self.client.recv(json_encode=True,val=int(size+(size*0.5)))
+                    else:
+                        self.reset_multiplayer_level(map_type[1],items)
+        elif protocol == "TCP":
+            if host == True:
+                self.client = scripts.TCPClient(port,get_wifi_ip())
+                if self.client.connect() == "Connection_ERROR":
+                    print("Hello")
+                    return "Connection ERROR!"
+                else:
+                    self.hosting = True
+                    data = {"loc":[0,0],"name":self.player.name, "health":self.player.health,"shield":self.player.shield,"equipped_weapon":{},"angle":0, "is_host": True, "addr":"0", "no_send_time":0}
+                    msg = f"{json.dumps(data)};{json.dumps(game_info)}"
+                    self.client.send(msg)
+                    pos = self.client.recv(json_encode=True,val=8)
+                    self.client.set_id(pos[1])
+                    self.player.set_pos(int(pos[0][0])*self.game.TILESIZE,int(pos[0][1])*self.game.TILESIZE)
+                    self.client.send(f"get")
+                    self.players,_,items,self.entites,map_type,_ = self.client.recv(json_encode=True,val=15)
+
+                    self.console = scripts.Console(self.game,(self.game.display.get_width()-4,25),client=self.client)
+
+                    if map_type[0] == "Custom":
+                        self.client.send(f"send_map:{map_type[1]}")
+
+                        size = int(self.client.recv())
+                        self.level = self.client.recv(json_encode=True,val=int(size+(size*0.5)))
+                    else:
+                        self.reset_multiplayer_level(map_type[1],items)
+
+            else:
+                self.client = scripts.TCPClient(port,ip)
+                if self.client.connect() == "Connection_ERROR":
+                    self.game.state = "Menu"
+                else:
+                    self.hosting = False
+                    data = {"loc":[0,0],"name":self.player.name, "health":self.player.health,"shield":self.player.shield,"equipped_weapon":{},"angle":0, "is_host": False, "addr":"0", "no_send_time":0}
+                    msg = f"{json.dumps(data)};{json.dumps(game_info)}"
+                    self.client.send(msg,json_encode=True)
+                    pos = self.client.recv(json_encode=True,val=8)
+                    self.client.set_id(pos[1])
+                    self.player.set_pos(int(pos[0][0]),int(pos[0][1]))
+                    self.client.send(f"get")
+                    self.players,_,items,entites,map_type,_ = self.client.recv(json_encode=True,val=15)
+                    
+                    if map_type[0] == "Custom":
+                        self.client.send(f"send_map:{map_type[1]}")
+
+                        size = int(self.client.recv())
+                        self.level = self.client.recv(json_encode=True,val=int(size+(size*0.5)))
+                    else:
+                        self.reset_multiplayer_level(map_type[1],items)
     
     #Managing
     def reset_multiplayer_level(self,level,items):
@@ -1238,39 +1288,72 @@ class Game_manager:
                             self.change_dims()
 
         if self.client.connected == True:
-            if self.player.alive == False:
-                movements = [[3,-2],[-4,-2],[-4,-3.7],[3,-3.7]]
-                w_count = self.player.weapon_count
-                self.player.drop_all_weapons(movements)
-                for i in range(w_count):
-                    item = self.items.pop(-1)
-                    item_data = [item.item_name,[int(item.rect.x),int(item.rect.y)], [item.movement[0],item.movement[1]], "dropped", item.id, []] # Items have a name,pos,movement
-                    self.client.send("add_item;"+json.dumps(item_data))
-            if self.player.equipped_weapon != None:
-                if self.player.equipped_weapon.weapon_group != "Melee":
-                    equipped_weapon = {"type": "Gun", "name":self.player.equipped_weapon.name,"ammo":self.player.equipped_weapon.ammo, "ammo_l":self.player.equipped_weapon.ammo_l, "is_flipped":self.player.equipped_weapon.flip}
+            if isinstance(self.client, scripts.UDPClient):
+                if self.player.alive == False:
+                    movements = [[3,-2],[-4,-2],[-4,-3.7],[3,-3.7]]
+                    w_count = self.player.weapon_count
+                    self.player.drop_all_weapons(movements)
+                    for i in range(w_count):
+                        item = self.items.pop(-1)
+                        item_data = [item.item_name,[int(item.rect.x),int(item.rect.y)], [item.movement[0],item.movement[1]], "dropped", item.id, []] # Items have a name,pos,movement
+                        self.client.send("add_item;"+json.dumps(item_data))
+                if self.player.equipped_weapon != None:
+                    if self.player.equipped_weapon.weapon_group != "Melee":
+                        equipped_weapon = {"type": "Gun", "name":self.player.equipped_weapon.name,"ammo":self.player.equipped_weapon.ammo, "ammo_l":self.player.equipped_weapon.ammo_l, "is_flipped":self.player.equipped_weapon.flip}
+                    else:
+                        equipped_weapon = {"type":"Melee", "name":self.player.equipped_weapon.name,"is_flipped":self.player.equipped_weapon.flip}
                 else:
-                    equipped_weapon = {"type":"Melee", "name":self.player.equipped_weapon.name,"is_flipped":self.player.equipped_weapon.flip}
-            else:
-                equipped_weapon = {}
-            command = f"update;{self.player.rect.x};{self.player.rect.y};{angle};{json.dumps(equipped_weapon)};{self.player.health};{self.player.shield};{self.client.id}" # update has position,angle,equipped_weapon and the client id
-            self.client.send(command)
-            data = self.client.recv(json_encode=True,val=20)
-            if data not in ["No data","Server is closed!"]:
-                self.players = data[0]
-                items = data[1]
-                bullets = data[2]
-                self.can_create_items(items)
-                self.can_create_bullets(bullets)
-                self.create_items(items)
-                self.create_bullets(bullets)
-            else:
-                if data == "Server is closed!":
-                    self.game.create_menu_manager()
-                    self.game.state = "Menu"
+                    equipped_weapon = {}
+                command = f"update;{self.player.rect.x};{self.player.rect.y};{angle};{json.dumps(equipped_weapon)};{self.player.health};{self.player.shield};{self.client.id}" # update has position,angle,equipped_weapon and the client id
+                self.client.send(command)
+                data = self.client.recv(json_encode=True,val=20)
+                if data not in ["No data","Server is closed!"]:
+                    self.players = data[0]
+                    items = data[1]
+                    bullets = data[2]
+                    self.can_create_items(items)
+                    self.can_create_bullets(bullets)
+                    self.create_items(items)
+                    self.create_bullets(bullets)
+                else:
+                    if data == "Server is closed!":
+                        self.game.create_menu_manager()
+                        self.game.state = "Menu"
+            if isinstance(self.client,scripts.TCPClient):
+                if self.player.alive == False:
+                    movements = [[3,-2],[-4,-2],[-4,-3.7],[3,-3.7]]
+                    w_count = self.player.weapon_count
+                    self.player.drop_all_weapons(movements)
+                    for i in range(w_count):
+                        item = self.items.pop(-1)
+                        item_data = [item.item_name,[int(item.rect.x),int(item.rect.y)], [item.movement[0],item.movement[1]], "dropped", item.id, []] # Items have a name,pos,movement
+                        self.client.send("add_item;"+json.dumps(item_data))
+                if self.player.equipped_weapon != None:
+                    if self.player.equipped_weapon.weapon_group != "Melee":
+                        equipped_weapon = {"type": "Gun", "name":self.player.equipped_weapon.name,"ammo":self.player.equipped_weapon.ammo, "ammo_l":self.player.equipped_weapon.ammo_l, "is_flipped":self.player.equipped_weapon.flip}
+                    else:
+                        equipped_weapon = {"type":"Melee", "name":self.player.equipped_weapon.name,"is_flipped":self.player.equipped_weapon.flip}
+                else:
+                    equipped_weapon = {}
+                command = f"update;{self.player.rect.x};{self.player.rect.y};{angle};{json.dumps(equipped_weapon)};{self.player.health};{self.player.shield}" # update has position,angle,equipped_weapon and the client id
+                self.client.send(command)
+                data = self.client.recv(json_encode=True,val=20)
+                if data not in ["No data","Server is closed!"]:
+                    self.players = data[0]
+                    items = data[1]
+                    bullets = data[2]
+                    self.can_create_items(items)
+                    self.can_create_bullets(bullets)
+                    self.create_items(items)
+                    self.create_bullets(bullets)
+                else:
+                    if data == "Server is closed!":
+                        self.game.create_menu_manager()
+                        self.game.state = "Menu"
         else:
             self.game.create_menu_manager()
             self.game.state = "Menu"
+
             
         self.game.screen.blit(pygame.transform.scale(self.game.display, (self.game.screen.get_width(),self.game.screen.get_height())), (0,0))
         pygame.display.update()

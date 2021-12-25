@@ -3,12 +3,12 @@ import subprocess
 import json,base64
 
 class TCPClient:
-    def __init__(self,player,port,ip):
+    def __init__(self,port,ip):
         self.port = port
         self.id = 0 #default value
         self.socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
         self.ip = ip
-        self.player = player
+        self.server_is_closed = base64.b64encode(b"SERVER_CLOSED")
         self.connected = False
 
     def connect(self):
@@ -33,22 +33,30 @@ class TCPClient:
     def recv(self,json_encode=False,val=1):
         if json_encode != True:
             data = self.socket.recv(2048*val).decode("utf-8")
-            return data
+            if data == self.server_is_closed.decode():
+                self.disconnect()
+                return "Server is closed!"
+            if data != "":
+                return data
+            else:
+                return "No data"
         else:
             data = self.socket.recv(2048*val).decode('utf-8')
+            if data == self.server_is_closed.decode():
+                self.disconnect()
+                return "Server is closed!"
             if data != "":
                 new_data = json.loads(data)
                 return new_data
             else:
-                return "Bad Data"
+                return "No Data"
 
 class UDPClient:
-    def __init__(self,player,port,ip):
+    def __init__(self,port,ip):
         self.port = port
         self.id = 0 #default value
         self.socket = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
         self.ip = ip
-        self.player = player
         self.serv_addr = (ip,port)
         self.server_is_closed = base64.b64encode(b"SERVER_CLOSED")
         self.connected = False
@@ -98,7 +106,7 @@ class UDPClient:
                     new_data = json.loads(data)
                     return new_data
                 else:
-                    for i in range(2): # Try to recv the data twice just in case the client does not get the data
+                    for i in range(1): # Try to recv the data again just in case the client does not get the data
                         data,_ = self.socket.recvfrom(2048*val)
                         data = data.decode('utf-8') 
                         if data == self.server_is_closed.decode():

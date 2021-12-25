@@ -200,7 +200,7 @@ class Menu:
                 game_info.append(items)
                 game_info.append(map_name)
 
-                self.game.game_manager.setup_mult(True,self.port,"0", game_info)
+                self.game.game_manager.setup_mult(True,self.port,"0", "TCP", game_info)
                 self.game.state = "Play"
                 self.clicked = True
                 

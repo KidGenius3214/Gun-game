@@ -29,7 +29,146 @@ CONNECTION_PACKET = base64.b64encode(b"Make connection:Gun Game")
 CLOSE_SERVER_PACKET = base64.b64encode(b"CLOSE_SERVER")
 
 class TCPserver:
-    pass
+    def __init__(self):
+        #Setup the socket
+        self.socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.ip = setup()
+        self.port = network_data["port"]
+        self.addr = (self.ip,self.port)
+
+        #Managment of the server
+        self.connections = 0
+        self._id = 0
+        self.player_limit = 100
+        self.gamemode = ""
+        self.level = ""
+        self.map_type = "NORMAL"
+        self.host = None
+        self.players = {}
+        self.connection_objs = {}
+        self.bullets = []
+        self.items = []
+        self.entities = {}
+        self.maps_path = "../data/maps/"
+        self.spawn_points = [[0,0]]
+        self.addresses = {}
+        self.closed = False
+    
+    def Verify(self):
+        if self.ip == "":
+            self.socket.close()
+            print("[SERVER] IP address is not valid")
+            return False
+        self.socket.bind(self.addr)
+        self.socket.listen()
+        print(f"[SERVER] Running on IP:{self.ip}")
+        print("[SERVER] Listening for connections")
+        return True
+     
+    def get_player_spawn(self):
+        return random.choice(self.spawn_points)
+    
+    def disconnect_player(self,_id):
+        print(f"[SERVER] Player {self.players[_id]['name']}  id:{_id} disconnected!")
+        self.connections -= 1
+        del self.players[_id]
+    
+    def RunClient(self,conn,p_id):
+        while True:
+            try:
+                command = conn.recv(2048*10)
+                if command.decode() == "get":
+                    game_info = [self.players,self.bullets,self.items,self.entities,[self.map_type,self.level],p_id]
+                    conn.send(json.dumps(game_info).encode())
+
+                if command.decode().split(';')[0] == "update":
+                    update_info = command.decode().split(';')
+                    pos = [int(update_info[1]), int(update_info[2])]
+                    angle = float(update_info[3]) # angle is in radians
+                    e_weapon = json.loads(update_info[4]) # The equipped weapon
+                    self.players[p_id]["loc"] = pos
+                    self.players[p_id]["angle"] = angle
+                    self.players[p_id]["health"] = int(update_info[5])
+                    self.players[p_id]["shield"] = int(update_info[6])
+                    self.players[p_id]["equipped_weapon"] = e_weapon
+                    game_info = [self.players,self.items,self.bullets]
+                    conn.send(json.dumps(game_info).encode())
+
+                if command.decode().split(':')[0] == "remove_item":
+                    item_id = int(command.decode('utf-8').split(':')[1])
+                    for i,item in enumerate(self.items):
+                        if item_id == item[4]:
+                            self.items.pop(i)
+
+                if command.decode().split(';')[0] == "add_item":
+                    item_data = json.loads(command.decode('utf-8').split(';')[1])
+                    self.items.insert(-1,item_data)
+                
+                if command.decode().split(';')[0] == "bullet":
+                    bullet_data = json.loads(command.decode('utf-8').split(';')[1])
+                    self.bullets.append(bullet_data)
+                
+                if command.decode('utf-8').split(':')[0] == "bullet_collide":
+                    b_id = int(command.decode('utf-8').split(':')[1])
+                    for i,bullet in enumerate(self.bullets):
+                        if bullet[-1] == b_id:
+                            self.bullets.remove(bullet)
+                
+                if command.decode('utf-8').split(':')[0] == "bullet_life_ended":
+                    b_id = int(command.decode('utf-8').split(':')[1])
+                    for i,bullet in enumerate(self.bullets):
+                        if bullet[-1] == b_id:
+                            self.bullets.remove(bullet)
+                
+                if command.decode() == "DISCONNECT":
+                    self.disconnect_player(p_id)
+                
+                if isinstance(command,bytes) == True:
+                    if base64.b64encode(command) == CLOSE_SERVER_PACKET:
+                        if p_id == self.host[0]:
+                            print("Server closed")
+                            self.closed = True
+                            break
+                        else:
+                            print(addr, "You are not the host!!!")
+
+            except Exception as e:
+                print(e)
+                break
+            
+        self.disconnect_player(p_id)
+
+    def RunGame(self):
+        while True:
+            conn,addr = self.socket.accept()
+
+            data = conn.recv(2048*10).decode()
+            player_data = json.loads(data.split(';')[0])
+            for player in self.players:
+                if self.players[player]["name"] == player_data["name"]:
+                    player_data["name"] += str(self._id)
+            self.players[self._id] = player_data
+            if player_data["is_host"] == True:
+                self.host = [self._id,conn,self.players[self._id]]
+                game_data = json.loads(data.split(';')[1])
+                self.gamemode,self.player_limit,self.spawn_points,self.map_type,self.items,self.level = game_data
+            player_data["loc"] = self.get_player_spawn()
+            conn.send(json.dumps([player_data["loc"],self._id]).encode())
+            self.connection_objs[self._id] = conn
+            self.connections += 1
+            print(f"[SERVER] {player_data['name']} has connected on id: {self._id}")
+
+            client_thread = threading.Thread(target=self.RunClient, args=(conn,self._id))
+            self._id += 1
+
+            client_thread.start()
+
+            if self.closed == True:
+                for conn_id in self.connection_objs:
+                    self.connections[conn_id].send(base64.b64encode(b"SERVER_CLOSED"))
+                break
+            
 
 class UDPserver:
     def __init__(self):
@@ -75,7 +214,6 @@ class UDPserver:
         print(f"[SERVER] Player {self.players[_id]['name']}  id:{_id} disconnected!")
         self.connections -= 1
         del self.players[_id]
-    
     
     def RunGame(self):
         while True:
@@ -182,7 +320,7 @@ class UDPserver:
                 break
 
 
-Server = UDPserver()
+Server = TCPserver()
 
 if Server.Verify() == True:
     Server.RunGame()
