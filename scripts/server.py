@@ -73,11 +73,16 @@ class TCPserver:
         print(f"[SERVER] Player {self.players[_id]['name']}  id:{_id} disconnected!")
         self.connections -= 1
         del self.players[_id]
+        del self.connection_objs[_id]
     
     def RunClient(self,conn,p_id):
         while True:
             try:
                 command = conn.recv(2048*10)
+
+                if not command:
+                    break
+
                 if command.decode() == "get":
                     game_info = [self.players,self.bullets,self.items,self.entities,[self.map_type,self.level],p_id]
                     conn.send(json.dumps(game_info).encode())
@@ -129,45 +134,48 @@ class TCPserver:
                         if p_id == self.host[0]:
                             print("Server closed")
                             self.closed = True
+                            if self.closed == True:
+                                for conn_id in self.connection_objs:
+                                    self.connection_objs[conn_id].send(base64.b64encode(b"SERVER_CLOSED"))
+                                    self.connection_objs[conn_id].close()
                             break
                         else:
-                            print(addr, "You are not the host!!!")
+                            print("You are not the host!!!")
 
             except Exception as e:
                 print(e)
-                break
             
         self.disconnect_player(p_id)
+        conn.close()
 
     def RunGame(self):
         while True:
-            conn,addr = self.socket.accept()
+            if self.closed == False:
+                conn,addr = self.socket.accept()
 
-            data = conn.recv(2048*10).decode()
-            player_data = json.loads(data.split(';')[0])
-            for player in self.players:
-                if self.players[player]["name"] == player_data["name"]:
-                    player_data["name"] += str(self._id)
-            self.players[self._id] = player_data
-            if player_data["is_host"] == True:
-                self.host = [self._id,conn,self.players[self._id]]
-                game_data = json.loads(data.split(';')[1])
-                self.gamemode,self.player_limit,self.spawn_points,self.map_type,self.items,self.level = game_data
-            player_data["loc"] = self.get_player_spawn()
-            conn.send(json.dumps([player_data["loc"],self._id]).encode())
-            self.connection_objs[self._id] = conn
-            self.connections += 1
-            print(f"[SERVER] {player_data['name']} has connected on id: {self._id}")
+                data = conn.recv(2048*10).decode()
+                player_data = json.loads(data.split(';')[0])
+                for player in self.players:
+                    if self.players[player]["name"] == player_data["name"]:
+                        player_data["name"] += str(self._id)
+                self.players[self._id] = player_data
+                if player_data["is_host"] == True:
+                    self.host = [self._id,conn,self.players[self._id]]
+                    game_data = json.loads(data.split(';')[1])
+                    self.gamemode,self.player_limit,self.spawn_points,self.map_type,self.items,self.level = game_data
+                player_data["loc"] = self.get_player_spawn()
+                conn.send(json.dumps([player_data["loc"],self._id]).encode())
+                self.connection_objs[self._id] = conn
+                self.connections += 1
+                print(f"[SERVER] {player_data['name']} has connected on id: {self._id}")
 
-            client_thread = threading.Thread(target=self.RunClient, args=(conn,self._id))
-            self._id += 1
-
-            client_thread.start()
-
-            if self.closed == True:
-                for conn_id in self.connection_objs:
-                    self.connections[conn_id].send(base64.b64encode(b"SERVER_CLOSED"))
+                client_thread = threading.Thread(target=self.RunClient, args=(conn,self._id))
+                client_thread.daemon = True
+                self._id += 1
+                client_thread.start()
+            else:
                 break
+        print("Closed")
             
 
 class UDPserver:

@@ -23,7 +23,7 @@ class Game_manager:
     def __init__(self,game,play_type):
         self.game = game
         self.play_type = play_type
-        self.player = scripts.Player(self,0, 0, 16, 16, 100, 3, 6, 0.3)
+        self.player = scripts.Player(self,0, 0, 16, 16, 1200, 3, 6, 0.3)
         self.event = None
         self.console = scripts.Console(self.game,(self.game.display.get_width()-4,25))
         self.current_level = 'Debug_level_0'
@@ -711,7 +711,6 @@ class Game_manager:
             if host == True:
                 self.client = scripts.TCPClient(port,get_wifi_ip())
                 if self.client.connect() == "Connection_ERROR":
-                    print("Hello")
                     return "Connection ERROR!"
                 else:
                     self.hosting = True
@@ -793,6 +792,8 @@ class Game_manager:
                 item.update_pos = True
                 self.items.append(item)
 
+        self.player.health = self.players[str(self.client.id)]["health"]
+        self.player.max_health = self.player.health
         self.current_level = level
     
     def render_game(self,scroll,active_chunks):
@@ -821,8 +822,6 @@ class Game_manager:
         if weapon_data != {}:
             if weapon_data["type"] == "Gun":
                 gun = scripts.Gun(self,weapon_data["name"],self.weapon_data[weapon_data["name"]],self.game.FPS)
-                gun.ammo = weapon_data["ammo"]
-                gun.ammo_l = weapon_data["ammo_l"]
                 gun.flip = weapon_data["is_flipped"]
                 return gun
             if weapon_data["type"] == "Melee":
@@ -859,8 +858,9 @@ class Game_manager:
         for item_id in items:
             if item_id[0] in self.item_data["Guns"]:
                 gun = scripts.Gun(self,item_id[0],self.weapon_data[item_id[0]],self.game.FPS)
-                if item_id[-1] != []:
-                    pass
+                if len(item_id[-1]) != 0:
+                    gun.ammo = item_id[-1][0]
+                    gun.ammo_l = item_id[-1][1]
                 item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Guns",self.game.FPS,gun)
                 if item_id[3] == "dropped":
                     item.dropped = True
@@ -1193,7 +1193,10 @@ class Game_manager:
                             result = self.player.drop_weapon(movement)
                             if result == True:
                                 item = self.items.pop(-1)
-                                item_data = [item.item_name,[int(item.rect.x),int(item.rect.y)], [item.movement[0],item.movement[1]], "dropped", item.id, []] # Items have a name,pos,movement
+                                gun_obj = item.ref_obj
+                                gun_data = [gun_obj.ammo,gun_obj.ammo_l]
+                                print(gun_data)
+                                item_data = [item.item_name,[int(item.rect.x),int(item.rect.y)], [item.movement[0],item.movement[1]], "dropped", item.id, gun_data] # Items have a name,pos,movement
                                 self.client.send('add_item;'+json.dumps(item_data))
                         if event.key == self.key_inputs["sniper_zoom"]:
                             if self.player.equipped_weapon != None:
@@ -1330,7 +1333,7 @@ class Game_manager:
                         self.client.send("add_item;"+json.dumps(item_data))
                 if self.player.equipped_weapon != None:
                     if self.player.equipped_weapon.weapon_group != "Melee":
-                        equipped_weapon = {"type": "Gun", "name":self.player.equipped_weapon.name,"ammo":self.player.equipped_weapon.ammo, "ammo_l":self.player.equipped_weapon.ammo_l, "is_flipped":self.player.equipped_weapon.flip}
+                        equipped_weapon = {"type": "Gun", "name":self.player.equipped_weapon.name,"is_flipped":self.player.equipped_weapon.flip}
                     else:
                         equipped_weapon = {"type":"Melee", "name":self.player.equipped_weapon.name,"is_flipped":self.player.equipped_weapon.flip}
                 else:

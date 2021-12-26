@@ -214,7 +214,7 @@ class Menu:
         if self.state == "Join_screen":
             self.font.render(self.game.display,"Available games",10,4,(255,255,255))
             for i,game in enumerate(self.games):
-                button = Button(10+(i*24),19, 2, game[0] ,6,"small",True)
+                button = Button(10+(i*24),19, 2, f"Game {i+1}",6,"small",True)
                 button.update(self.game.display,pos)
                 if button.clicked and self.clicked == False:
                     self.game.create_game_manager("Multiplayer")

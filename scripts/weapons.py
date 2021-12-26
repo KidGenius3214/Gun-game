@@ -175,7 +175,7 @@ class Gun:
     def update(self,surf,scroll,pos,angle,render=True):
         if render == True:
             self.render(surf,scroll,pos,angle)
-        if self.ammo <= 0 and self.ammo_l == 0:
+        if self.ammo <= 0 and self.ammo_l <= 0:
             self.has_ammo = False
         
         if self.ammo_l <= 0 and self.has_ammo == True:

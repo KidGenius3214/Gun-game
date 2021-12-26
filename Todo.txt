@@ -1,4 +1,10 @@
 Add A Bow
+add an rpg
+add throwables:
+-grenade
+-molotov
+-c4 bombs
+-custom bombs
 Have a smart AI enemy that can shoot
 work on melee weapons
 Make level editor more visually pleasing and user freindly
