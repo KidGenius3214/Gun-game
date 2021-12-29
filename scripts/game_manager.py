@@ -23,7 +23,7 @@ class Game_manager:
     def __init__(self,game,play_type):
         self.game = game
         self.play_type = play_type
-        self.player = scripts.Player(self,0, 0, 16, 16, 1200, 3, 6, 0.3)
+        self.player = scripts.Player(self,0, 0, 16, 16, 100, 3, 6, 0.3)
         self.event = None
         self.console = scripts.Console(self.game,(self.game.display.get_width()-4,25))
         self.current_level = 'Debug_level_0'
@@ -658,8 +658,8 @@ class Game_manager:
 
     # Multiplayer setup,managing and gameplay goes here
     # Setup
-    def setup_mult(self,host,port,ip,protocol="UDP",game_info=[]):
-        if protocol == "UDP":
+    def setup_mult(self,host,port,ip,game_info=[]):
+        if self.game.protocol == "UDP":
             if host == True:
                 self.client = scripts.UDPClient(port,get_wifi_ip())
                 if self.client.connect() == "Connection_ERROR":
@@ -707,7 +707,7 @@ class Game_manager:
                         self.level = self.client.recv(json_encode=True,val=int(size+(size*0.5)))
                     else:
                         self.reset_multiplayer_level(map_type[1],items)
-        elif protocol == "TCP":
+        elif self.game.protocol == "TCP":
             if host == True:
                 self.client = scripts.TCPClient(port,get_wifi_ip())
                 if self.client.connect() == "Connection_ERROR":
@@ -741,7 +741,7 @@ class Game_manager:
                     self.hosting = False
                     data = {"loc":[0,0],"name":self.player.name, "health":self.player.health,"shield":self.player.shield,"equipped_weapon":{},"angle":0, "is_host": False, "addr":"0", "no_send_time":0}
                     msg = f"{json.dumps(data)};{json.dumps(game_info)}"
-                    self.client.send(msg,json_encode=True)
+                    self.client.send(msg)
                     pos = self.client.recv(json_encode=True,val=8)
                     self.client.set_id(pos[1])
                     self.player.set_pos(int(pos[0][0]),int(pos[0][1]))
@@ -810,7 +810,8 @@ class Game_manager:
         for bullet in self.bullets:
             bullet.run(self.game.display,scroll)
             if bullet.lifetime <= 0:
-                self.client.send("bullet_life_ended:"+str(bullet.id))
+                msg = "bullet_life_ended:"+str(bullet.id)
+                self.client.send(msg)
 
         for player_id in self.players:
             player_data = self.players[player_id]
@@ -986,10 +987,12 @@ class Game_manager:
             if bullet.rect.colliderect(player.rect):
                 if self.players[str(bullet.owner)]["name"] in player_names:
                     self.player.damage(self.players[str(bullet.owner)]["name"],bullet.dmg)
-                    self.client.send("bullet_collide:"+str(bullet.id))
+                    msg = "bullet_collide:"+str(bullet.id)
+                    self.client.send(msg)
             for tile in tiles:
                 if tile.colliderect(bullet.rect):
-                    self.client.send("bullet_collide:"+str(bullet.id))
+                    msg = "bullet_collide:"+str(bullet.id)
+                    self.client.send(msg)
 
         for player_id in self.players:
             player_data = self.players[player_id]
@@ -1089,7 +1092,8 @@ class Game_manager:
                         else:
                             for bullet in bullets:
                                 bullet_data = [bullet.x,bullet.y,bullet.speed,bullet.angle,bullet.color,bullet.dmg,bullet.grav,bullet.owner,bullet.mult,bullet.lifetime,self.player.equipped_weapon.gun_info["bullet_image"], bullet.id]
-                                self.client.send("bullet;"+json.dumps(bullet_data))
+                                msg = "bullet;"+json.dumps(bullet_data)
+                                self.client.send(msg)
 
                 if bullet_data != [] and self.player.equipped_weapon.weapon_group != "Shotguns":
                     self.client.send("bullet;"+json.dumps(bullet_data))
@@ -1193,11 +1197,17 @@ class Game_manager:
                             result = self.player.drop_weapon(movement)
                             if result == True:
                                 item = self.items.pop(-1)
-                                gun_obj = item.ref_obj
-                                gun_data = [gun_obj.ammo,gun_obj.ammo_l]
-                                print(gun_data)
-                                item_data = [item.item_name,[int(item.rect.x),int(item.rect.y)], [item.movement[0],item.movement[1]], "dropped", item.id, gun_data] # Items have a name,pos,movement
+                                if isinstance(item.ref_obj, scripts.Gun):
+                                    ref_obj = item.ref_obj
+                                    weapon_data = [ref_obj.ammo,ref_obj.ammo_l]
+                                else:
+                                    weapon_data = []
+                                item_data = [item.item_name,[int(item.rect.x),int(item.rect.y)], [item.movement[0],item.movement[1]], "dropped", item.id, weapon_data] # Items have a name,pos,movement
                                 self.client.send('add_item;'+json.dumps(item_data))
+                        if event.key == self.key_inputs["reload"]:
+                            if self.player.equipped_weapon != None:
+                                if self.player.equipped_weapon.reload_gun == False:
+                                    self.player.equipped_weapon.reload_gun = True
                         if event.key == self.key_inputs["sniper_zoom"]:
                             if self.player.equipped_weapon != None:
                                 if self.player.equipped_weapon.weapon_group == "Snipers":
@@ -1298,11 +1308,16 @@ class Game_manager:
                     self.player.drop_all_weapons(movements)
                     for i in range(w_count):
                         item = self.items.pop(-1)
+                        if isinstance(item.ref_obj, scripts.Gun):
+                            ref_obj = item.ref_obj
+                            weapon_data = [ref_obj.ammo,ref_obj.ammo_l]
+                        else:
+                            weapon_data = []
                         item_data = [item.item_name,[int(item.rect.x),int(item.rect.y)], [item.movement[0],item.movement[1]], "dropped", item.id, []] # Items have a name,pos,movement
                         self.client.send("add_item;"+json.dumps(item_data))
                 if self.player.equipped_weapon != None:
                     if self.player.equipped_weapon.weapon_group != "Melee":
-                        equipped_weapon = {"type": "Gun", "name":self.player.equipped_weapon.name,"ammo":self.player.equipped_weapon.ammo, "ammo_l":self.player.equipped_weapon.ammo_l, "is_flipped":self.player.equipped_weapon.flip}
+                        equipped_weapon = {"type": "Gun", "name":self.player.equipped_weapon.name,"is_flipped":self.player.equipped_weapon.flip}
                     else:
                         equipped_weapon = {"type":"Melee", "name":self.player.equipped_weapon.name,"is_flipped":self.player.equipped_weapon.flip}
                 else:
@@ -1329,7 +1344,12 @@ class Game_manager:
                     self.player.drop_all_weapons(movements)
                     for i in range(w_count):
                         item = self.items.pop(-1)
-                        item_data = [item.item_name,[int(item.rect.x),int(item.rect.y)], [item.movement[0],item.movement[1]], "dropped", item.id, []] # Items have a name,pos,movement
+                        if isinstance(item.ref_obj, scripts.Gun):
+                            ref_obj = item.ref_obj
+                            weapon_data = [ref_obj.ammo,ref_obj.ammo_l]
+                        else:
+                            weapon_data = []
+                        item_data = [item.item_name,[int(item.rect.x),int(item.rect.y)], [item.movement[0],item.movement[1]], "dropped", item.id, weapon_data] # Items have a name,pos,movement
                         self.client.send("add_item;"+json.dumps(item_data))
                 if self.player.equipped_weapon != None:
                     if self.player.equipped_weapon.weapon_group != "Melee":

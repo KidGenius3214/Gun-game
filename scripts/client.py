@@ -33,6 +33,7 @@ class TCPClient:
     def recv(self,json_encode=False,val=1):
         if json_encode != True:
             data = self.socket.recv(2048*val).decode("utf-8")
+            print(data)
             if data == self.server_is_closed.decode():
                 self.disconnect()
                 return "Server is closed!"

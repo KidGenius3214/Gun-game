@@ -23,6 +23,7 @@ class Game:
         self.key_inputs = self.json_h.load("data/Game_data/key_input.json","Key_Inputs")
         self.settings = self.json_h.load("data/Game_data/settings.json","settings")
         self.scale = self.settings['video_settings'][0]
+        self.protocol = self.settings["networking"]["protocol"]
         self.fullscreen = False
 
         if self.settings['video_settings'][1] == False:

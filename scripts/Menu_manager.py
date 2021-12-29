@@ -16,13 +16,13 @@ def get_wifi_ip():
         ip = data_list[data_list.index("Wireless LAN adapter Wi-Fi:\r")+4].lstrip().split("IPv4 Address. . . . . . . . . . . : ")[1].split("\r")[0] # get ip when connected to wifi
     return ip
 
-addresses = set()
+addresses = []
 can_send = True
 
-def find_games(port,obj):
+def UDP_find_games(port,obj):
     global addresses,can_send
     can_send = True
-    addresses = set()
+    addresses = []
     sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
@@ -39,10 +39,8 @@ def find_games(port,obj):
     else:
         ip_range = int(data[data.index("Wireless LAN adapter Wi-Fi:\r")+5].lstrip().split("Subnet Mask . . . . . . . . . . . : ")[1].replace('\r','').split('.')[0])
     
-    if can_send == True:
-        if count >= 25:
-            addresses = set()
-        while True:
+    while True:
+        if can_send == True:
             if can_send == False:
                 sock.close()
                 break
@@ -55,14 +53,73 @@ def find_games(port,obj):
 
             try:
                 data,addr = sock.recvfrom(2048)
+                if not data or data == "":
+                    addresses.remove(addr)
                 if data.decode() == "I_AM_HERE":
-                    addresses.add(addr)
+                    if addr not in addresses:
+                        addresses.append(addr)
             except Exception as e:
                 print(e)
             count += 1
             obj.games = addresses
+        else:
+            print("no games found")
+
+def get_address(ip,port,obj):
+    global addresses,can_send
+    sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    connected = False
+    index = 0
+    while True:
+        if can_send == True:
+            try:
+                if connected == False:
+                    sock.connect((ip,port))
+                    connected = True
+                sock.send("FIND_GAME:GUN_GAME".encode())
+                if sock.recv(2048).decode() == "I_AM_HERE":
+                    if (ip,port) not in addresses:
+                        addresses.append((ip,port))
+                        indexes = len(addresses)
+                obj.games = addresses
+            except Exception as e:
+                if len(addresses) != 0:
+                    addr = addresses[index]
+                    if addr == (ip,port):
+                        addresses.remove(addr)
+        else:
+            try:
+                sock.send("stop".encode())
+                sock.close()
+                break
+            except Exception as e:
+                #print(e)
+                break
+
+def TCP_find_games(port,obj):
+    global addresses,can_send
+    can_send = True
+    addresses = []
+
+    ip = get_wifi_ip()
+    ip_search = ip.split('.')
+    ip_search = f"{ip_search[0]}.{ip_search[1]}.{ip_search[2]}."
+    #get the range of the ip addresses
+    data = subprocess.run(["ipconfig"],capture_output=True).stdout.decode()
+    data = data.split("\n")
+    index = data[data.index("Wireless LAN adapter Wi-Fi:\r")+2].lstrip()
+    count = 0
+    if index == "Media State . . . . . . . . . . . : Media disconnected\r":
+        pass
     else:
-        print("no more finding games")
+        ip_range = int(data[data.index("Wireless LAN adapter Wi-Fi:\r")+5].lstrip().split("Subnet Mask . . . . . . . . . . . : ")[1].replace('\r','').split('.')[0])
+    
+    for i in range(ip_range+1):
+        ip_address = f"{ip_search}{i}"
+        get_thread = threading.Thread(target=get_address, args=(ip_address,port,obj))
+        get_thread.daemon = True
+        get_thread.start()
 
 class Menu:
     def __init__(self, game):
@@ -85,27 +142,9 @@ class Menu:
         self.port = self.game.settings["networking"]["port"]
         self.can_send = True
         self.clock = pygame.time.Clock()
-        self.games = set()
+        self.games = []
         self.udp_sock = socket.socket(socket.AF_INET,socket.SOCK_DGRAM)
-        self.udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-
-    def find_games(self):
-        while True:
-            self.games = []
-            for i in range(257):
-                try:
-                    if self.search_ip != "":
-                        ip = self.search_ip.split('.')
-                        host = f"{ip[0]}.{ip[1]}.{ip[2]}.{i}"
-                        self.udp_sock.sendto(b"Find Server",(host,self.port))
-                except Exception as e:
-                    break
-            
-            try:
-                data,addr = self.udp_sock.recvfrom(2048*8)
-                self.games.append(json.loads(data.decode('utf-8')))
-            except:
-                pass          
+        self.udp_sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)        
     
     def run(self):
         global can_send
@@ -200,19 +239,25 @@ class Menu:
                 game_info.append(items)
                 game_info.append(map_name)
 
-                self.game.game_manager.setup_mult(True,self.port,"0", "TCP", game_info)
+                self.game.game_manager.setup_mult(True,self.port,"0",game_info)
                 self.game.state = "Play"
                 self.clicked = True
                 
             if self.Join_btn.clicked == True and self.clicked == False:
-                find_game_thread = threading.Thread(target=find_games, args=(self.port,self))
-                find_game_thread.daemon = True
-                find_game_thread.start()
+                if self.game.protocol == "UDP":
+                    find_game_thread = threading.Thread(target=UDP_find_games, args=(self.port,self))
+                    find_game_thread.daemon = True
+                    find_game_thread.start()
+                elif self.game.protocol == "TCP":
+                    find_game_thread = threading.Thread(target=TCP_find_games, args=(self.port,self))
+                    find_game_thread.daemon = True
+                    find_game_thread.start()
                 self.state = "Join_screen"
                 self.clicked = True
                 
         if self.state == "Join_screen":
             self.font.render(self.game.display,"Available games",10,4,(255,255,255))
+            #print(addresses,self.games)
             for i,game in enumerate(self.games):
                 button = Button(10+(i*24),19, 2, f"Game {i+1}",6,"small",True)
                 button.update(self.game.display,pos)

@@ -111,7 +111,7 @@ class TCPserver:
                     self.items.insert(-1,item_data)
                 
                 if command.decode().split(';')[0] == "bullet":
-                    bullet_data = json.loads(command.decode('utf-8').split(';')[1])
+                    bullet_data = json.loads(command.decode('utf-8').split(';')[1].split(';')[0])
                     self.bullets.append(bullet_data)
                 
                 if command.decode('utf-8').split(':')[0] == "bullet_collide":
@@ -121,7 +121,8 @@ class TCPserver:
                             self.bullets.remove(bullet)
                 
                 if command.decode('utf-8').split(':')[0] == "bullet_life_ended":
-                    b_id = int(command.decode('utf-8').split(':')[1])
+                    b_id = command.decode('utf-8').split(':')[1]
+                    b_id = int(b_id.replace("bullet_life_ended",""))
                     for i,bullet in enumerate(self.bullets):
                         if bullet[-1] == b_id:
                             self.bullets.remove(bullet)
@@ -141,12 +142,21 @@ class TCPserver:
                             break
                         else:
                             print("You are not the host!!!")
-
             except Exception as e:
                 print(e)
-            
+
         self.disconnect_player(p_id)
         conn.close()
+    
+    def make_visible(self,conn,_):
+        while True:
+            data = conn.recv(2048*10).decode()
+            if data == "FIND_GAME:GUN_GAME":
+               conn.send("I_AM_HERE".encode()) 
+            if data == "stop":
+                conn.close()
+                break
+        print("no_need_to")
 
     def RunGame(self):
         while True:
@@ -154,25 +164,30 @@ class TCPserver:
                 conn,addr = self.socket.accept()
 
                 data = conn.recv(2048*10).decode()
-                player_data = json.loads(data.split(';')[0])
-                for player in self.players:
-                    if self.players[player]["name"] == player_data["name"]:
-                        player_data["name"] += str(self._id)
-                self.players[self._id] = player_data
-                if player_data["is_host"] == True:
-                    self.host = [self._id,conn,self.players[self._id]]
-                    game_data = json.loads(data.split(';')[1])
-                    self.gamemode,self.player_limit,self.spawn_points,self.map_type,self.items,self.level = game_data
-                player_data["loc"] = self.get_player_spawn()
-                conn.send(json.dumps([player_data["loc"],self._id]).encode())
-                self.connection_objs[self._id] = conn
-                self.connections += 1
-                print(f"[SERVER] {player_data['name']} has connected on id: {self._id}")
+                if data != "FIND_GAME:GUN_GAME":
+                    player_data = json.loads(data.split(';')[0])
+                    for player in self.players:
+                        if self.players[player]["name"] == player_data["name"]:
+                            player_data["name"] += str(self._id)
+                    self.players[self._id] = player_data
+                    if player_data["is_host"] == True:
+                        self.host = [self._id,conn,self.players[self._id]]
+                        game_data = json.loads(data.split(';')[1])
+                        self.gamemode,self.player_limit,self.spawn_points,self.map_type,self.items,self.level = game_data
+                    player_data["loc"] = self.get_player_spawn()
+                    conn.send(json.dumps([player_data["loc"],self._id]).encode())
+                    self.connection_objs[self._id] = conn
+                    self.connections += 1
+                    print(f"[SERVER] {player_data['name']} has connected on id: {self._id}")
 
-                client_thread = threading.Thread(target=self.RunClient, args=(conn,self._id))
-                client_thread.daemon = True
-                self._id += 1
-                client_thread.start()
+                    client_thread = threading.Thread(target=self.RunClient, args=(conn,self._id))
+                    client_thread.daemon = True
+                    self._id += 1
+                    client_thread.start()
+                else:
+                    conn.send("I_AM_HERE".encode())
+                    thread = threading.Thread(target=self.make_visible, args=(conn,1))
+                    thread.start()
             else:
                 break
         print("Closed")
@@ -328,7 +343,15 @@ class UDPserver:
                 break
 
 
-Server = TCPserver()
+if network_data["protocol"] == "TCP":   
+    Server = TCPserver()
+elif network_data["protocol"] == "UDP":
+    Server = UDPserver()
+else:
+    Server = None
 
-if Server.Verify() == True:
-    Server.RunGame()
+if Server != None:
+    if Server.Verify() == True:
+        Server.RunGame()
+else:
+    print("Looks like we have a protocol issue")
