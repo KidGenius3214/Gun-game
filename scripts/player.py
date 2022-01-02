@@ -126,7 +126,11 @@ class Player(scripts.Entity):
 
     def swap_weapon(self,item):
         if item != None:
-            self.drop_weapon(False)
+            if self.flip == True:
+                movement = [-6,-2]
+            else:
+                movement = [4,-2]
+            self.drop_weapon(movement,False)
             return self.add_weapon_item(item)
         else:
             return False
@@ -184,20 +188,21 @@ class Player(scripts.Entity):
                             item_remove_list.append(index)
                             break
 
-    def movement(self,tiles):
+    def movement(self,tiles, dt):
+        #delta time is to make sure that the player moves the same amount nevery second
         movement = [0,0]
         if self.left == True:
-            movement[0] -= self.vel
+            movement[0] -= self.vel * dt * self.game.target_fps
         if self.right == True:
-            movement[0] += self.vel
-        movement[1] += self.vel_y
-        self.vel_y += self.gravity
+            movement[0] += self.vel * dt * self.game.target_fps
+        movement[1] += self.vel_y * dt * self.game.target_fps
+        self.vel_y += self.gravity * dt * self.game.target_fps
         if self.vel_y > self.g_limit:
             self.vel_y = self.g_limit
 
         if self.wall_jump_true == True:
-            movement[1] = -4
-            movement[0] = 8*self.jump_direction
+            movement[1] = -4*dt*self.game.target_fps
+            movement[0] = (8*dt*self.game.target_fps)*self.jump_direction
             self.vel_y = -4
 
         self.collisions = self.physics_obj.movement(movement,tiles)
@@ -214,7 +219,7 @@ class Player(scripts.Entity):
             self.on_wall = True
             self.wall_jump_true = False
             if movement[1] > 0:
-                self.vel_y = 1.5
+                self.vel_y = 1.2
             if self.collisions["right"] == True:
                 self.jump_direction = -1
             else:
@@ -228,7 +233,7 @@ class Player(scripts.Entity):
             self.jump_count = 0
 
         if self.wall_jump_true == True:
-            self.wall_jump_tick -= 1
+            self.wall_jump_tick -= 1*dt*self.game.target_fps
             if self.wall_jump_tick <= 0:
                 self.wall_jump_true = False
                 self.wall_jump_tick = 7

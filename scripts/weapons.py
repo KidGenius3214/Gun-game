@@ -5,7 +5,8 @@ from . import *
 import math,random
 
 class Bullet:
-    def __init__(self,x,y,speed,angle,color,dmg,owner,mult,lifetime,img=None,gravity=0):
+    def __init__(self,game,x,y,speed,angle,color,dmg,owner,mult,lifetime,img=None,gravity=0):
+        self.game = game
         self.x = x
         self.y = y
         self.speed = speed
@@ -24,14 +25,14 @@ class Bullet:
         else:
             self.rect = pygame.Rect(self.x,self.y,5,5)
 
-    def run(self,surf,scroll,rects=None):
-        self.x += math.cos(self.angle)*self.speed
+    def run(self,surf,scroll,dt,rects=None):
+        self.x += math.cos(self.angle)*self.speed*dt*self.game.target_fps
         if self.grav == 0:
-            self.y += math.sin(self.angle)*self.speed
+            self.y += math.sin(self.angle)*self.speed*dt*self.game.target_fps
         else:
-            self.y += self.initial_vel_y
-            self.initial_vel_y += self.grav
-        self.lifetime -= 1
+            self.y += self.initial_vel_y*dt*self.game.target_fps
+            self.initial_vel_y += self.grav*dt*self.game.target_fps
+        self.lifetime -= 1*dt*self.game.target_fps
         if self.img != None:
             blit_center(surf,pygame.transform.rotate(self.img,math.degrees(-self.angle)),[self.rect.x-scroll[0],self.rect.y-scroll[1]])
             #pygame.draw.rect(surf,(0,255,0),(self.rect.x-scroll[0],self.rect.y-scroll[1],self.rect.width,self.rect.height),1)
@@ -107,9 +108,9 @@ class Gun:
                     dmg = random.randint(self.crit_dmg[0],self.crit_dmg[1])
 
                 if self.weapon_group != "Bows":
-                    bullet_list.append(Bullet(pos[0]+self.bullet_offset[0],pos[1]+self.bullet_offset[1],self.speed,angle,(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img))
+                    bullet_list.append(Bullet(self,game,pos[0]+self.bullet_offset[0],pos[1]+self.bullet_offset[1],self.speed,angle,(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img))
                 else:
-                    bullet_list.append(Bullet(pos[0]+self.bullet_offset[0],pos[1]+self.bullet_offset[1],self.speed,angle,(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img,self.gun_info["b_grav"]))
+                    bullet_list.append(Bullet(self.game,pos[0]+self.bullet_offset[0],pos[1]+self.bullet_offset[1],self.speed,angle,(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img,self.gun_info["b_grav"]))
                     
                 self.ammo_l -= 1
                 self.shot = True
@@ -126,7 +127,7 @@ class Gun:
                     if random.random() <= self.crit_rate:
                         dmg = random.randint(self.crit_dmg[0],self.crit_dmg[1])
 
-                    bullet_list.append(Bullet(pos[0]+self.render_offset[0],pos[1]+self.render_offset[1],self.speed,angle+random.uniform(self.spread[0],self.spread[1]),(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img))
+                    bullet_list.append(Bullet(self.game,pos[0]+self.render_offset[0],pos[1]+self.render_offset[1],self.speed,angle+random.uniform(self.spread[0],self.spread[1]),(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img))
                     
                 self.ammo_l -= 1
                 self.shot = True
@@ -187,7 +188,8 @@ class Gun:
                 self.reload()
 
 class RPG(Gun):
-    pass
+    def __init__(self,game,rpg,FPS):
+        pass
 
 class Melee_Weapon:
     def __init__(self,game,weapon):

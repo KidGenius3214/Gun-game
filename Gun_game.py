@@ -11,6 +11,7 @@ class Game:
         self.win_dims = win_dims
         self.display_dims = display_dims
         self.FPS = FPS
+        self.target_fps = 50
         
         # Setup the screen and display
         self.json_h = JSON_Handler()
@@ -103,5 +104,5 @@ class Game:
             self.states_manager()
 
 
-Main_Game = Game([600,350], [600,350], 50)
+Main_Game = Game([600,350], [600,350], 10)
 Main_Game.run()

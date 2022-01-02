@@ -22,6 +22,7 @@ def get_wifi_ip():
 class Game_manager:
     def __init__(self,game,play_type):
         self.game = game
+        self.target_fps = self.game.target_fps
         self.play_type = play_type
         self.player = scripts.Player(self,0, 0, 16, 16, 100, 3, 6, 0.3)
         self.event = None
@@ -49,7 +50,10 @@ class Game_manager:
         self.item_data = self.game.item_info
         self.key_inputs = self.game.key_inputs
         self.camera = scripts.Camera()
-        self.time = 0
+        #Delta time calculation
+        self.time_passed = time.time()
+
+
         #Fonts
         self.font1 = scripts.Text("data/images/font.png",1,3)
         self.font1_x1_5 = scripts.Text("data/images/font.png", round(1*1.5), round(3*1.5))
@@ -207,6 +211,10 @@ class Game_manager:
         size_dif = float(self.game.screen.get_width()/self.game.display.get_width())
         self.relative_pos = [int(pos[0]/size_dif), int(pos[1]/size_dif)]
 
+        #Delta Time calculation
+        now = time.time()
+        dt = now - self.time_passed
+        self.time_passed = now
         self.game.display = pygame.transform.scale(self.game.display,(round(self.game.display_dims[0]*self.zoom),round(self.game.display_dims[1]*self.zoom)))
 
         self.camera.update(self.player,self.game.display,10)
@@ -260,7 +268,7 @@ class Game_manager:
         b_remove_list = []
         n = 0
         for bullet in self.bullets:
-            bullet.run(self.game.display,scroll)
+            bullet.run(self.game.display,scroll, dt)
             if bullet.lifetime <= 0:
                 b_remove_list.append(n)
             n += 1
@@ -391,7 +399,7 @@ class Game_manager:
             y = int(int(item.rect.y/self.game.TILESIZE)/self.game.CHUNKSIZE)
             chunk_str = f"{x}/{y}"
             if chunk_str in active_chunks:
-                item.move(tiles)
+                item.move(tiles,dt)
             if item.rect.colliderect(self.player.rect):
                 if item.pickup_cooldown <= 0:
                     if isinstance(item, scripts.Item):
@@ -429,7 +437,7 @@ class Game_manager:
         for item in item_remove_list:
             self.items.pop(item)
 
-        self.player.movement(tiles)
+        self.player.movement(tiles, dt)
 
         if self.show_console == True:
             self.console.render()
@@ -796,7 +804,7 @@ class Game_manager:
         self.player.max_health = self.player.health
         self.current_level = level
     
-    def render_game(self,scroll,active_chunks):
+    def render_game(self,scroll,active_chunks,dt):
         for item in self.items:
             x = int(int(item.rect.x/self.game.TILESIZE)/self.game.CHUNKSIZE)
             y = int(int(item.rect.y/self.game.TILESIZE)/self.game.CHUNKSIZE)
@@ -808,7 +816,7 @@ class Game_manager:
                 item.render(self.game.display,scroll)
 
         for bullet in self.bullets:
-            bullet.run(self.game.display,scroll)
+            bullet.run(self.game.display,scroll,dt)
             if bullet.lifetime <= 0:
                 msg = "bullet_life_ended:"+str(bullet.id)
                 self.client.send(msg)
@@ -938,14 +946,14 @@ class Game_manager:
             bullet.id = bullet_data[-1]
             self.bullets.append(bullet)
     
-    def update_game(self,tiles,scroll,active_chunks):
+    def update_game(self,tiles,scroll,active_chunks,dt):
         player = scripts.Player(self,self.players[str(self.client.id)]["loc"][0], self.players[str(self.client.id)]["loc"][1],self.player.rect.width,self.player.rect.height,0,0,0,0)
         for item in self.items:
             x = int(int(item.rect.x/self.game.TILESIZE)/self.game.CHUNKSIZE)
             y = int(int(item.rect.y/self.game.TILESIZE)/self.game.CHUNKSIZE)
             chunk_str = f"{x}/{y}"
             if chunk_str in active_chunks:
-                item.move(tiles)
+                item.move(tiles, dt)
             if item.rect.colliderect(player.rect):
                 if item.pickup_cooldown <= 0:
                     if isinstance(item, scripts.Item):
@@ -1012,6 +1020,11 @@ class Game_manager:
         size_dif = float(self.game.screen.get_width()/self.game.display.get_width())
         self.relative_pos = [int(pos[0]/size_dif), int(pos[1]/size_dif)]
 
+        #Delta Time calculation
+        now = time.time()
+        dt = now - self.time_passed
+        self.time_passed = now
+
         player = scripts.Player(self,self.players[str(self.client.id)]["loc"][0], self.players[str(self.client.id)]["loc"][1],self.player.rect.width,self.player.rect.height,self.players[str(self.client.id)]["health"],0,0,0)
 
         self.camera.update(player,self.game.display,10)
@@ -1051,7 +1064,7 @@ class Game_manager:
                             if tile[0] in self.tile_data["collidable"]:
                                 tiles.append(pygame.Rect(tile[1][0]*self.game.TILESIZE, tile[1][1]*self.game.TILESIZE,self.game.TILESIZE,self.game.TILESIZE))
 
-        self.render_game(scroll,active_chunks)
+        self.render_game(scroll,active_chunks,dt)
 
         for chunk_id in active_chunks:
             if chunk_id in self.level["tiles"]:
@@ -1064,8 +1077,8 @@ class Game_manager:
                     if tile[0] in self.tile_data["collidable"]:
                         tiles.append(pygame.Rect(tile[1][0]*self.game.TILESIZE, tile[1][1]*self.game.TILESIZE,self.game.TILESIZE,self.game.TILESIZE))
         
-        self.player.movement(tiles)
-        self.update_game(tiles,scroll,active_chunks)
+        self.player.movement(tiles, dt)
+        self.update_game(tiles,scroll,active_chunks, dt)
         self.player.update()
 
         if self.player.equipped_weapon != None:
@@ -1183,7 +1196,7 @@ class Game_manager:
                             self.player.right = True
                         if event.key == self.key_inputs["jump"]:
                             if self.player.jump_count < 2 and self.player.on_wall == False:
-                                self.player.vel_y = -self.player.jump
+                                self.player.vel_y = -self.player.jump*dt*self.target_fps
                                 self.player.jump_count += 1
                             if self.player.on_wall == True and self.player.collisions["bottom"] == False:
                                 self.player.wall_jump_true = True

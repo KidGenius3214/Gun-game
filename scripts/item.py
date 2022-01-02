@@ -8,6 +8,7 @@ with open("data/Game_data/item_info.json","r") as file:
 
 class Item:
     def __init__(self,game,x,y,item_name,item_group,FPS,reference_obj=None):
+        self.game = game
         self.x = x
         self.y = y
         self.item_name = item_name
@@ -66,16 +67,17 @@ class Item:
     def del_ref_obj(self,obj):
         self.ref_obj = None
 
-    def move(self,tiles):
+    def move(self,tiles,dt):
+        #delta time is used to move the object the same amount every second
         if self.dropped != True:
             self.movement = [0,0]
-
-        self.movement[1] += self.vel_y
-        self.vel_y += self.grav
+        
+        self.movement[1] += self.vel_y * dt *self.game.target_fps
+        self.vel_y += self.grav*dt*self.game.target_fps
             
         if self.vel_y > 15:
             self.vel_y = 15
-        
+
         self.collisions = self.physics_obj.movement(self.movement,tiles)
         self.rect = self.physics_obj.rect
         self.x = self.rect.x
@@ -88,6 +90,7 @@ class Item:
             self.vel_y = round(self.vel_y)
             self.grounded = True
             self.dropped = False
+            self.vel_x = 0
 
         if self.collisions["top"] == True:
             self.vel_y = 2
