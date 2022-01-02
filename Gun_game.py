@@ -104,5 +104,5 @@ class Game:
             self.states_manager()
 
 
-Main_Game = Game([600,350], [600,350], 10)
+Main_Game = Game([600,350], [600,350], 50)
 Main_Game.run()

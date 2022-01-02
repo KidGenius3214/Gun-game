@@ -100,7 +100,7 @@ class Gun:
         else:
             self.bullet_img = None
 
-    def shoot(self,bullet_list,owner,pos,angle):
+    def shoot(self,bullet_list,owner,pos,angle,dt):
         if self.weapon_group != "Shotguns":
             if self.shot == False and self.reload_gun == False and self.has_ammo == True:
                 dmg = self.dmg
@@ -108,7 +108,7 @@ class Gun:
                     dmg = random.randint(self.crit_dmg[0],self.crit_dmg[1])
 
                 if self.weapon_group != "Bows":
-                    bullet_list.append(Bullet(self,game,pos[0]+self.bullet_offset[0],pos[1]+self.bullet_offset[1],self.speed,angle,(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img))
+                    bullet_list.append(Bullet(self.game,pos[0]+self.bullet_offset[0],pos[1]+self.bullet_offset[1],self.speed,angle,(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img))
                 else:
                     bullet_list.append(Bullet(self.game,pos[0]+self.bullet_offset[0],pos[1]+self.bullet_offset[1],self.speed,angle,(239,222,7),dmg,owner,self.bullet_size,self.gun_info["b_lifetime"],self.bullet_img,self.gun_info["b_grav"]))
                     
@@ -116,7 +116,7 @@ class Gun:
                 self.shot = True
 
             if self.shot == True and self.has_ammo == True:
-                self.pause -= 1
+                self.pause -= 1*dt*self.game.target_fps
                 if self.pause <= 0:
                     self.pause = self.gun_info["pause"]*self.FPS
                     self.shot = False
@@ -133,7 +133,7 @@ class Gun:
                 self.shot = True
 
             if self.shot == True and self.has_ammo == True:
-                self.pause -= 1
+                self.pause -= 1*dt*self.game.target_fps
                 if self.pause <= 0:
                     self.pause = self.gun_info["pause"]*self.FPS
                     self.shot = False
@@ -173,7 +173,7 @@ class Gun:
         if self.ammo > self.gun_info["ammo"]:
             self.ammo = self.gun_info["ammo"]
 
-    def update(self,surf,scroll,pos,angle,render=True):
+    def update(self,surf,scroll,pos,angle,dt,render=True):
         if render == True:
             self.render(surf,scroll,pos,angle)
         if self.ammo <= 0 and self.ammo_l <= 0:
@@ -183,7 +183,7 @@ class Gun:
             self.reload_gun = True
 
         if self.reload_gun == True and self.has_ammo == True:
-            self.reload_time -= 1
+            self.reload_time -= 1*dt*self.game.target_fps
             if self.reload_time <= 0:
                 self.reload()
 

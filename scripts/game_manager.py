@@ -50,6 +50,7 @@ class Game_manager:
         self.item_data = self.game.item_info
         self.key_inputs = self.game.key_inputs
         self.camera = scripts.Camera()
+        self.show_fps = False
         #Delta time calculation
         self.time_passed = time.time()
 
@@ -121,16 +122,16 @@ class Game_manager:
                 self.camera.update(self.player,self.game.display,1)
         for item_id in self.level["items"]:
             if item_id[0] in self.item_data["Guns"]:
-                gun = scripts.Gun(self,item_id[0],self.weapon_data[item_id[0]],self.game.FPS)
-                item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Guns",self.game.FPS,gun)
+                gun = scripts.Gun(self,item_id[0],self.weapon_data[item_id[0]],self.target_fps)
+                item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Guns",self.target_fps,gun)
                 self.items.append(item)
             if item_id[0] in self.item_data["Melee"]:
                 melee = scripts.Melee_Weapon(self,item_id[0])
-                item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Melee",self.game.FPS,melee)
+                item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Melee",self.target_fps,melee)
                 self.items.append(item)
             if item_id[0] in self.item_data["Ammo"]:
                 ref_obj = scripts.Ammo(self.game,item_id[0])
-                item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Ammo",self.game.FPS,ref_obj)
+                item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Ammo",self.target_fps,ref_obj)
                 self.items.append(item)
             if item_id[0] in self.item_data["Consumables"]:
                 item = scripts.Consumable(self,int(item_id[1][0]*self.game.TILESIZE),int(item_id[1][1]*self.game.TILESIZE),item_id[0])
@@ -318,9 +319,9 @@ class Game_manager:
                 else:
                     self.player.equipped_weapon.flip = False
                     self.player.flip = False
-                self.player.equipped_weapon.update(self.game.display,scroll,self.player.get_center(),math.degrees(-angle))
+                self.player.equipped_weapon.update(self.game.display,scroll,self.player.get_center(),math.degrees(-angle),dt)
                 if pygame.mouse.get_pressed()[0] == True:
-                    self.player.equipped_weapon.shoot(self.bullets,"player",self.player.get_center(),angle)
+                    self.player.equipped_weapon.shoot(self.bullets,"player",self.player.get_center(),angle,dt)
                 if controller_input["active"] == True:
                     x = self.controller_pos[0]+scroll[0]
                     if x < self.player.get_center()[0]:
@@ -330,7 +331,7 @@ class Game_manager:
                         self.player.equipped_weapon.flip = False
                         self.player.flip = False
                     if controller_input["buttons"]["shoot"] == True:
-                        self.player.equipped_weapon.shoot(self.bullets,"player",self.player.get_center(),angle)
+                        self.player.equipped_weapon.shoot(self.bullets,"player",self.player.get_center(),angle,dt)
             if self.player.equipped_weapon.weapon_group == "Melee":
                 if x < self.player.get_center()[0]:
                     self.player.equipped_weapon.flip = True
@@ -338,7 +339,7 @@ class Game_manager:
                 else:
                     self.player.equipped_weapon.flip = False
                     self.player.flip = False
-                self.player.equipped_weapon.update(self.game.display,scroll,[self.player.get_center()[0],self.player.get_center()[1]],math.degrees(-angle))
+                self.player.equipped_weapon.update(self.game.display,scroll,[self.player.get_center()[0],self.player.get_center()[1]],math.degrees(-angle),dt)
                 if controller_input["active"] == True:
                     x = self.controller_pos[0]+scroll[0]
                     if x < self.player.get_center()[0]:
@@ -496,6 +497,12 @@ class Game_manager:
         if self.player.weapon_count >= 4:
             self.player.no_space = True
 
+        if self.show_fps == True:
+            size = (self.font1.get_size(f"FPS: {int(self.game.clock.get_fps())}"))
+            self.font1.render(self.game.display, f"FPS: {int(self.game.clock.get_fps())}", self.game.display.get_width()-(size[0]+5), self.game.display.get_height()-(size[1]+1), (255,255,255))
+        else:
+            pass
+
         if controller_input["active"] == True:
             if controller_input["axis_val"][0] > 0.5:
                 self.player.right = True
@@ -587,6 +594,9 @@ class Game_manager:
                         if self.player.on_wall == True and self.player.collisions["bottom"] == False:
                             self.player.wall_jump_true = True
                             self.player.jump_count = 1
+                    
+                    if event.key == K_F1:
+                        self.show_fps = not self.show_fps
                     
                     if event.key == K_F11:
                         if self.game.fullscreen != True:
@@ -777,20 +787,20 @@ class Game_manager:
         
         for item_id in items:
             if item_id[0] in self.item_data["Guns"]:
-                gun = scripts.Gun(self,item_id[0],self.weapon_data[item_id[0]],self.game.FPS)
-                item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Guns",self.game.FPS,gun)
+                gun = scripts.Gun(self,item_id[0],self.weapon_data[item_id[0]],self.target_fps)
+                item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Guns",self.target_fps,gun)
                 item.id = item_id[4]
                 item.update_pos = True
                 self.items.append(item)
             if item_id[0] in self.item_data["Melee"]:
                 melee = scripts.Melee_Weapon(self,item_id[0])
-                item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Melee",self.game.FPS,melee)
+                item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Melee",self.target_fps,melee)
                 item.id = item_id[4]
                 item.update_pos = True
                 self.items.append(item)
             if item_id[0] in self.item_data["Ammo"]:
                 ref_obj = scripts.Ammo(self.game,item_id[0])
-                item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Ammo",self.game.FPS,ref_obj)
+                item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Ammo",self.target_fps,ref_obj)
                 item.id = item_id[4]
                 item.update_pos = True
                 self.items.append(item)
@@ -830,7 +840,7 @@ class Game_manager:
     def create_weapon(self,weapon_data):
         if weapon_data != {}:
             if weapon_data["type"] == "Gun":
-                gun = scripts.Gun(self,weapon_data["name"],self.weapon_data[weapon_data["name"]],self.game.FPS)
+                gun = scripts.Gun(self,weapon_data["name"],self.weapon_data[weapon_data["name"]],self.target_fps)
                 gun.flip = weapon_data["is_flipped"]
                 return gun
             if weapon_data["type"] == "Melee":
@@ -866,11 +876,11 @@ class Game_manager:
     def create_items(self,items):
         for item_id in items:
             if item_id[0] in self.item_data["Guns"]:
-                gun = scripts.Gun(self,item_id[0],self.weapon_data[item_id[0]],self.game.FPS)
+                gun = scripts.Gun(self,item_id[0],self.weapon_data[item_id[0]],self.target_fps)
                 if len(item_id[-1]) != 0:
                     gun.ammo = item_id[-1][0]
                     gun.ammo_l = item_id[-1][1]
-                item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Guns",self.game.FPS,gun)
+                item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Guns",self.target_fps,gun)
                 if item_id[3] == "dropped":
                     item.dropped = True
                 item.movement[0] = item_id[2][0]
@@ -882,7 +892,7 @@ class Game_manager:
                 melee = scripts.Melee_Weapon(self,item_id[0])
                 if item_id[-1] != []:
                     pass
-                item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Melee",self.game.FPS,melee)
+                item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Melee",self.target_fps,melee)
                 if item_id[3] == "dropped":
                     item.dropped = True
                 item.movement[0] = item_id[2][0]
@@ -892,7 +902,7 @@ class Game_manager:
                 self.items.append(item)
             if item_id[0] in self.item_data["Ammo"]:
                 ref_obj = scripts.Ammo(self.game,item_id[0])
-                item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Ammo",self.game.FPS,ref_obj)
+                item = scripts.Item(self,item_id[1][0],item_id[1][1],item_id[0],"Ammo",self.target_fps,ref_obj)
                 if item_id[3] == "dropped":
                     item.dropped = True
                 item.movement[0] = item_id[2][0]
