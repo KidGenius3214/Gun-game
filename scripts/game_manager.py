@@ -89,7 +89,8 @@ class Game_manager:
         #Inventory rendering stuff
         self.position = 25
         self.size = 1
-        
+
+        self.grenade = None
         self.reset_level(self.current_level)
 
     def reload_controller(self):
@@ -540,6 +541,10 @@ class Game_manager:
         else:
             scripts.blit_center(self.game.display,self.game.controller_cursor,self.relative_pos)
 
+        if self.grenade != None:
+            self.grenade.draw(self.game.display, scroll)
+            self.grenade.move(tiles, dt)
+
         for event in pygame.event.get():
             self.event = event
             if self.show_console == True:
@@ -594,6 +599,9 @@ class Game_manager:
                         if self.player.on_wall == True and self.player.collisions["bottom"] == False:
                             self.player.wall_jump_true = True
                             self.player.jump_count = 1
+                    
+                    if event.key == K_g:
+                        self.grenade = scripts.Grenade(self,self.player.get_center()[0], self.player.get_center()[1], 6, angle)
                     
                     if event.key == K_F1:
                         self.show_fps = not self.show_fps

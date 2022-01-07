@@ -1,6 +1,7 @@
 #Weapons.py
 #Holds all gun stuff
 import pygame
+import scripts
 from . import *
 import math,random
 
@@ -246,5 +247,46 @@ class Ammo:
         return self.weapon_group
 
 
-    
+class Throwable(scripts.Entity):
+    def __init__(self, game, x, y, width, height, vel):
+        super().__init__(x, y, width, height, vel, 0)
+        self.game = game
+
+
+class Grenade(Throwable):
+    def __init__(self, game, x, y, vel, angle):
+        super().__init__(game, x, y, 5, 5, vel)
+
+        self.image = pygame.image.load("data/images/weapons/grenade.png").convert()
+        self.image.set_colorkey((255,255,255))
+
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+
+        self.angle = angle
+        self.vel_y = math.sin(self.angle)*self.vel
+        self.gravity = 0.3
+        self.vel_x = math.cos(self.angle)*self.vel
+
+    def move(self,tiles, dt):
+        movement = [0,0]
+
+        movement[0] += self.vel_x * dt * self.game.target_fps
+        movement[1] += self.vel_y * dt * self.game.target_fps
+        self.vel_y += self.gravity * dt * self.game.target_fps
+
+        if self.vel_y > 7:
+            self.vel_y = 7
+
+        self.collisions = self.physics_obj.movement(movement, tiles)
+        self.rect = self.physics_obj.rect
+
+        if self.collisions["bottom"] == True:
+            self.vel_x = (self.vel_x*0.5)
+            self.vel_y = -(self.vel_y*0.3)
         
+        if self.collisions["right"] == True or self.collisions["left"] == True:
+            self.vel_x = -self.vel_x
+        
+        if self.collisions['top'] == True:
+            self.vel_y = 1
