@@ -316,7 +316,7 @@ class Particle:
             pygame.draw.circle(surf, self.color, (self.x-scroll[0], self.y-scroll[1]), self.size)
             if self.outline != None:
                 if self.outline[1] > self.outline[2]:
-                    pygame.draw.circle(surf, self.outline[0], (self.x-scroll[0], self.y-scroll[1]), self.size,self.outline[1])
+                    pygame.draw.circle(surf, self.outline[0], (self.x-scroll[0], self.y-scroll[1]), self.size,round(self.outline[1]))
                 self.outline[1] -= self.size_decrease
             self.size -= self.size_decrease
             self.x += self.motion[0]
@@ -328,7 +328,7 @@ class Particle:
             pygame.draw.rect(surf, self.color, (self.x-scroll[0],self.y-scroll[1],self.size,self.size))
             if self.outline != None:
                 if self.outline[1] > self.outline[2]:
-                    pygame.draw.rect(surf, self.outline[0], (self.x-scroll[0],self.y-scroll[1],self.size,self.size), self.outline[1])
+                    pygame.draw.rect(surf, self.outline[0], (self.x-scroll[0],self.y-scroll[1],self.size,self.size), round(self.outline[1]))
                 self.outline[1] -= self.size_decrease
             self.size -= self.size_decrease
             self.x += self.motion[0]

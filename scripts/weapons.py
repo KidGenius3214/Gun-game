@@ -267,6 +267,12 @@ class Grenade(Throwable):
         self.vel_y = math.sin(self.angle)*self.vel
         self.gravity = 0.3
         self.vel_x = math.cos(self.angle)*self.vel
+        self.blast_raduis = 0
+        self.max_raduis = 100
+        self.timer = 1*self.game.target_fps
+        self.explode_lifetime = 0.05*self.game.target_fps
+        self.exploded = False
+        self.dmg = 60
 
     def move(self,tiles, dt):
         movement = [0,0]
@@ -278,8 +284,11 @@ class Grenade(Throwable):
         if self.vel_y > 7:
             self.vel_y = 7
 
-        self.collisions = self.physics_obj.movement(movement, tiles)
-        self.rect = self.physics_obj.rect
+        if self.exploded == False:
+            self.collisions = self.physics_obj.movement(movement, tiles)
+            self.rect = self.physics_obj.rect
+            self.x = self.rect.x
+            self.y = self.rect.y
 
         if self.collisions["bottom"] == True:
             self.vel_x = (self.vel_x*0.5)
@@ -290,3 +299,21 @@ class Grenade(Throwable):
         
         if self.collisions['top'] == True:
             self.vel_y = 1
+        
+        self.timer -= round(1 * dt * self.game.target_fps)
+        if self.timer < 0:
+            if self.exploded == False:
+                self.explode(dt)
+        
+        if self.exploded == True:
+            self.explode_lifetime -= round(1*dt*self.game.target_fps)
+    
+    def explode(self, dt):
+        self.blast_raduis = self.max_raduis
+
+        if self.blast_raduis >= self.max_raduis:
+            self.blast_raduis = self.max_raduis
+            self.exploded = True
+    
+    def get_explode_lifetime(self):
+        return self.explode_lifetime

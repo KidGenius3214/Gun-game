@@ -379,7 +379,7 @@ class Game_manager:
         p_remove_list = []
         n = 0
         for particle in self.particles:
-            particle.render(self.game.display,scroll)
+            particle.render(self.game.display,[0,0])
             if particle.size <= 0:
                 p_remove_list.append(n)
             n += 1
@@ -544,6 +544,26 @@ class Game_manager:
         if self.grenade != None:
             self.grenade.draw(self.game.display, scroll)
             self.grenade.move(tiles, dt)
+            x,y = self.grenade.get_center()
+
+            if self.grenade.get_explode_lifetime() < 0:
+                self.grenade = None
+
+            if self.grenade != None:
+                if self.grenade.exploded == True:
+                    r = self.grenade.max_raduis
+                    if [x,y] < list(self.player.rect.topleft):
+                        loc = self.player.rect.topleft
+                        dis = math.sqrt( (loc[0]-x)**2 + (loc[1]-y)**2 )
+                        if dis < r:
+                            self.player.damage("grenade", self.grenade.dmg)
+                            self.grenade = None
+                    elif [x,y] > list(self.player.rect.topright):
+                        loc = self.player.rect.topright
+                        dis = math.sqrt( (loc[0]-x)**2 + (loc[1]-y)**2 )
+                        if dis < r:
+                            self.player.damage("grenade", self.grenade.dmg)
+                            self.grenade = None
 
         for event in pygame.event.get():
             self.event = event
