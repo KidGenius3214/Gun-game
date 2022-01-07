@@ -1,6 +1,6 @@
 from .Engine import *
 from .GUI import *
-from .Menu_manager import *
+from .managers.menu_manager import *
 from .game_manager import *
 from .player import *
 from .Level_Editor import *
@@ -11,3 +11,4 @@ from .item import *
 from .enemy import *
 from .console import *
 from .consumable import *
+from .managers.entity_manager import *
