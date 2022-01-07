@@ -1,5 +1,5 @@
-import scripts
 import pygame
+import scripts
 from pygame.locals import *
 
 

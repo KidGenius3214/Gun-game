@@ -19,7 +19,7 @@ def get_wifi_ip():
         ip = data_list[data_list.index("Wireless LAN adapter Wi-Fi:\r")+4].lstrip().split("IPv4 Address. . . . . . . . . . . : ")[1].split("\r")[0] # get ip when connected to wifi
     return ip
 
-class Game_manager:
+class GameManager:
     def __init__(self,game,play_type):
         self.game = game
         self.target_fps = self.game.target_fps

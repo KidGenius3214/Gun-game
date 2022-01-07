@@ -4,7 +4,6 @@
 #server commands
 #debugging
 
-
 import pygame
 import scripts
 from pygame.locals import *
