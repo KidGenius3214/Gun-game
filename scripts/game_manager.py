@@ -51,6 +51,8 @@ class GameManager:
         self.key_inputs = self.game.key_inputs
         self.camera = scripts.Camera()
         self.show_fps = False
+        self.EntityManager = scripts.EntityManager(game)
+
         #Delta time calculation
         self.time_passed = time.time()
 
@@ -125,17 +127,21 @@ class GameManager:
             if item_id[0] in self.item_data["Guns"]:
                 gun = scripts.Gun(self,item_id[0],self.weapon_data[item_id[0]],self.target_fps)
                 item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Guns",self.target_fps,gun)
+                self.EntityManager.add_item(item)
                 self.items.append(item)
             if item_id[0] in self.item_data["Melee"]:
                 melee = scripts.Melee_Weapon(self,item_id[0])
                 item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Melee",self.target_fps,melee)
+                self.EntityManager.add_item(item)
                 self.items.append(item)
             if item_id[0] in self.item_data["Ammo"]:
                 ref_obj = scripts.Ammo(self.game,item_id[0])
                 item = scripts.Item(self,item_id[1][0]*self.game.TILESIZE,item_id[1][1]*self.game.TILESIZE,item_id[0],"Ammo",self.target_fps,ref_obj)
+                self.EntityManager.add_item(item)
                 self.items.append(item)
             if item_id[0] in self.item_data["Consumables"]:
                 item = scripts.Consumable(self,int(item_id[1][0]*self.game.TILESIZE),int(item_id[1][1]*self.game.TILESIZE),item_id[0])
+                self.EntityManager.add_item(item)
                 self.items.append(item)
 
         self.current_level = level
@@ -340,7 +346,7 @@ class GameManager:
                 else:
                     self.player.equipped_weapon.flip = False
                     self.player.flip = False
-                self.player.equipped_weapon.update(self.game.display,scroll,[self.player.get_center()[0],self.player.get_center()[1]],math.degrees(-angle),dt)
+                self.player.equipped_weapon.update(self.game.display,scroll,[self.player.get_center()[0],self.player.get_center()[1]],math.degrees(-angle))
                 if controller_input["active"] == True:
                     x = self.controller_pos[0]+scroll[0]
                     if x < self.player.get_center()[0]:

@@ -2,7 +2,7 @@
 import pygame
 pygame.init()
 from pygame.locals import *
-from . import *
+from scripts import *
 import socket,threading,json
 import sys,pickle,subprocess,random
 

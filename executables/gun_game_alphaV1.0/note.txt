@@ -1,4 +1,0 @@
-Multiplayer is not secure
-So,don't play multiplayer in this version
-It uses pickle
-Which is a big security risk if used over a network
