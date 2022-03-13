@@ -311,6 +311,8 @@ class Level_Editor:
             return
         Queue = queue.Queue()
         Queue.put((y, x))
+        if "item_spawn" in self.current_tile:
+            new_val = "item_spawn" + ":" + self.item_name.text
         while not Queue.empty():
             y, x = Queue.get()
             if x < 0 or x >= world_w or y < 0 or y >= world_h or map_data[y][x] != old_val:
@@ -424,7 +426,10 @@ class Level_Editor:
         if selected_tile != None:
             for l in selected_tile:
                 if "item_spawn" in selected_tile[l]:
-                    self.font.render(self.game.display,"item: " + selected_tile[l].split(":")[1],1,1,(255,255,255))
+                    try:
+                        self.font.render(self.game.display,"item: " + selected_tile[l].split(":")[1],1,1,(255,255,255))
+                    except:
+                        pass
         
         for button in buttons:
             self.game.display.blit(buttons[button][0], buttons[button][2])

@@ -1,23 +1,25 @@
+# To be done by end of january
+Add more weapons count:12
 Add A Bow
-add an rpg
+Add an RPG (Rocket launcher) with explosions
 add throwables:
--grenade
--molotov
--c4 bombs
--custom bombs
+ -grenade
+ -molotov
+ -c4 bombs
+ -custom bombs
+improve visuals of guns and stuff
 Have a smart AI enemy that can shoot
 work on melee weapons
 Make level editor more visually pleasing and user freindly
-more consumables:
-More food
 work on multiplayer
-add enemy spawing
 Work on park city background
 Work on Game GUI
+
+# To be done later
+Create story for Park city
 Add the Card System (Powerups,buffs,weapon upgrades, weapon descriptions)
 work on gun upgrading system
 work on in game money system
 Add the first game mode to multiplayer
 Add a Co-op
 add a little reload indicator (bullets dropping, particles falling)
-Add an RPG (Rocket launcher) with explosions

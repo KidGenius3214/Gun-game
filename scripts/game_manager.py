@@ -55,6 +55,7 @@ class GameManager:
 
         #Delta time calculation
         self.time_passed = time.time()
+        self.dt = 1
 
 
         #Fonts
@@ -123,6 +124,7 @@ class GameManager:
             if spawn[0] == "spawn":
                 self.player.set_pos(spawn[1][0]*self.game.TILESIZE,spawn[1][1]*self.game.TILESIZE)
                 self.camera.update(self.player,self.game.display,1)
+
         for item_id in self.level["items"]:
             if item_id[0] in self.item_data["Guns"]:
                 gun = scripts.Gun(self,item_id[0],self.weapon_data[item_id[0]],self.target_fps)
@@ -221,7 +223,7 @@ class GameManager:
 
         #Delta Time calculation
         now = time.time()
-        dt = now - self.time_passed
+        self.dt = now - self.time_passed
         self.time_passed = now
         self.game.display = pygame.transform.scale(self.game.display,(round(self.game.display_dims[0]*self.zoom),round(self.game.display_dims[1]*self.zoom)))
 
@@ -276,7 +278,7 @@ class GameManager:
         b_remove_list = []
         n = 0
         for bullet in self.bullets:
-            bullet.run(self.game.display,scroll, dt)
+            bullet.run(self.game.display,scroll, self.dt)
             if bullet.lifetime <= 0:
                 b_remove_list.append(n)
             n += 1
@@ -326,9 +328,9 @@ class GameManager:
                 else:
                     self.player.equipped_weapon.flip = False
                     self.player.flip = False
-                self.player.equipped_weapon.update(self.game.display,scroll,self.player.get_center(),math.degrees(-angle),dt)
+                self.player.equipped_weapon.update(self.game.display,scroll,self.player.get_center(),math.degrees(-angle),self.dt)
                 if pygame.mouse.get_pressed()[0] == True:
-                    self.player.equipped_weapon.shoot(self.bullets,"player",self.player.get_center(),angle,dt)
+                    self.player.equipped_weapon.shoot(self.bullets,"player",self.player.get_center(),angle,self.dt)
                 if controller_input["active"] == True:
                     x = self.controller_pos[0]+scroll[0]
                     if x < self.player.get_center()[0]:
@@ -338,7 +340,7 @@ class GameManager:
                         self.player.equipped_weapon.flip = False
                         self.player.flip = False
                     if controller_input["buttons"]["shoot"] == True:
-                        self.player.equipped_weapon.shoot(self.bullets,"player",self.player.get_center(),angle,dt)
+                        self.player.equipped_weapon.shoot(self.bullets,"player",self.player.get_center(),angle,self.dt)
             if self.player.equipped_weapon.weapon_group == "Melee":
                 if x < self.player.get_center()[0]:
                     self.player.equipped_weapon.flip = True
@@ -407,7 +409,7 @@ class GameManager:
             y = int(int(item.rect.y/self.game.TILESIZE)/self.game.CHUNKSIZE)
             chunk_str = f"{x}/{y}"
             if chunk_str in active_chunks:
-                item.move(tiles,dt)
+                item.move(tiles,self.dt)
             if item.rect.colliderect(self.player.rect):
                 if item.pickup_cooldown <= 0:
                     if isinstance(item, scripts.Item):
@@ -445,7 +447,7 @@ class GameManager:
         for item in item_remove_list:
             self.items.pop(item)
 
-        self.player.movement(tiles, dt)
+        self.player.movement(tiles, self.dt)
 
         if self.show_console == True:
             self.console.render()
@@ -476,7 +478,7 @@ class GameManager:
         #Render the inventory of the player
         inventory_data = self.player.inventory.get_all_items()
         self.position = 10
-        for i,weapon_id in enumerate(inventory_data):
+        for i,weapon_id in sorted(enumerate(inventory_data), reverse=True):
             weapon = inventory_data[weapon_id]
             if len(weapon) != 0:
                 weapon = weapon[0].ref_obj
@@ -547,30 +549,6 @@ class GameManager:
         else:
             scripts.blit_center(self.game.display,self.game.controller_cursor,self.relative_pos)
 
-        if self.grenade != None:
-            self.grenade.draw(self.game.display, scroll)
-            self.grenade.move(tiles, dt)
-            x,y = self.grenade.get_center()
-
-            if self.grenade.get_explode_lifetime() < 0:
-                self.grenade = None
-
-            if self.grenade != None:
-                if self.grenade.exploded == True:
-                    r = self.grenade.max_raduis
-                    if [x,y] < list(self.player.rect.topleft):
-                        loc = self.player.rect.topleft
-                        dis = math.sqrt( (loc[0]-x)**2 + (loc[1]-y)**2 )
-                        if dis < r:
-                            self.player.damage("grenade", self.grenade.dmg)
-                            self.grenade = None
-                    elif [x,y] > list(self.player.rect.topright):
-                        loc = self.player.rect.topright
-                        dis = math.sqrt( (loc[0]-x)**2 + (loc[1]-y)**2 )
-                        if dis < r:
-                            self.player.damage("grenade", self.grenade.dmg)
-                            self.grenade = None
-
         for event in pygame.event.get():
             self.event = event
             if self.show_console == True:
@@ -626,8 +604,8 @@ class GameManager:
                             self.player.wall_jump_true = True
                             self.player.jump_count = 1
                     
-                    if event.key == K_g:
-                        self.grenade = scripts.Grenade(self,self.player.get_center()[0], self.player.get_center()[1], 6, angle)
+                    if event.key == self.key_inputs["throwables"]:
+                        print("Thrown")
                     
                     if event.key == K_F1:
                         self.show_fps = not self.show_fps
@@ -985,7 +963,7 @@ class GameManager:
                 img = self.game.img_m.load(bullet[10],(255,255,255))
             else:
                 img = None
-            bullet = scripts.Bullet(bullet_data[0],bullet_data[1],bullet_data[2],bullet_data[3],bullet_data[4],bullet_data[5],bullet_data[7],
+            bullet = scripts.Bullet(self, bullet_data[0],bullet_data[1],bullet_data[2],bullet_data[3],bullet_data[4],bullet_data[5],bullet_data[7],
                                     bullet_data[8],bullet_data[9],img,bullet_data[6])
             bullet.id = bullet_data[-1]
             self.bullets.append(bullet)
@@ -1052,7 +1030,7 @@ class GameManager:
             e_weapon = self.create_weapon(player_data["equipped_weapon"])
             if e_weapon != None:
                 if isinstance(e_weapon,scripts.Gun):
-                    e_weapon.update(self.game.display,scroll,[player.get_center()[0]+e_weapon.render_offset[0], player.get_center()[1]+e_weapon.render_offset[1]],math.degrees(-player_data["angle"]))
+                    e_weapon.update(self.game.display,scroll,[player.get_center()[0]+e_weapon.render_offset[0], player.get_center()[1]+e_weapon.render_offset[1]],math.degrees(-player_data["angle"]), dt)
                 if isinstance(e_weapon,scripts.Melee_Weapon):
                     e_weapon.update(self.game.display,scroll,[player.get_center()[0], player.get_center()[1]],math.degrees(-player_data["angle"]))
 
@@ -1066,7 +1044,7 @@ class GameManager:
 
         #Delta Time calculation
         now = time.time()
-        dt = now - self.time_passed
+        self.dt = now - self.time_passed
         self.time_passed = now
 
         player = scripts.Player(self,self.players[str(self.client.id)]["loc"][0], self.players[str(self.client.id)]["loc"][1],self.player.rect.width,self.player.rect.height,self.players[str(self.client.id)]["health"],0,0,0)
@@ -1108,7 +1086,7 @@ class GameManager:
                             if tile[0] in self.tile_data["collidable"]:
                                 tiles.append(pygame.Rect(tile[1][0]*self.game.TILESIZE, tile[1][1]*self.game.TILESIZE,self.game.TILESIZE,self.game.TILESIZE))
 
-        self.render_game(scroll,active_chunks,dt)
+        self.render_game(scroll,active_chunks,self.dt)
 
         for chunk_id in active_chunks:
             if chunk_id in self.level["tiles"]:
@@ -1121,8 +1099,8 @@ class GameManager:
                     if tile[0] in self.tile_data["collidable"]:
                         tiles.append(pygame.Rect(tile[1][0]*self.game.TILESIZE, tile[1][1]*self.game.TILESIZE,self.game.TILESIZE,self.game.TILESIZE))
         
-        self.player.movement(tiles, dt)
-        self.update_game(tiles,scroll,active_chunks, dt)
+        self.player.movement(tiles, self.dt)
+        self.update_game(tiles,scroll,active_chunks, self.dt)
         self.player.update()
 
         if self.player.equipped_weapon != None:
@@ -1137,9 +1115,9 @@ class GameManager:
                 
                 bullets = []
                 bullet_data = []
-                self.player.equipped_weapon.update(self.game.display,scroll,self.player.get_center(),angle,render=False)
+                self.player.equipped_weapon.update(self.game.display,scroll,self.player.get_center(),angle, self.dt,render=False)
                 if pygame.mouse.get_pressed()[0] == True: #Shoot the bullet
-                    self.player.equipped_weapon.shoot(bullets,self.client.id,player.get_center(),self.players[str(self.client.id)]["angle"])
+                    self.player.equipped_weapon.shoot(bullets,self.client.id,player.get_center(),self.players[str(self.client.id)]["angle"], self.dt)
 
                     if len(bullets) != 0:
                         if self.player.equipped_weapon.weapon_group != "Shotguns":
@@ -1240,7 +1218,7 @@ class GameManager:
                             self.player.right = True
                         if event.key == self.key_inputs["jump"]:
                             if self.player.jump_count < 2 and self.player.on_wall == False:
-                                self.player.vel_y = -self.player.jump*dt*self.target_fps
+                                self.player.vel_y = -self.player.jump*self.dt*self.target_fps
                                 self.player.jump_count += 1
                             if self.player.on_wall == True and self.player.collisions["bottom"] == False:
                                 self.player.wall_jump_true = True

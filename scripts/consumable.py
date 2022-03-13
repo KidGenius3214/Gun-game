@@ -18,9 +18,10 @@ class Consumable:
     def render(self,surf,scroll):
         self.item_obj.render(surf,scroll)
 
-    def move(self,tiles):
-        self.item_obj.move(tiles)
+    def move(self,tiles,dt):
+        self.item_obj.move(tiles,dt)
         self.rect = self.item_obj.rect
+        self.x,self.y = self.rect.topleft
 
         
         

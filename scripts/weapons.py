@@ -190,7 +190,9 @@ class Gun:
 
 class RPG(Gun):
     def __init__(self,game,rpg,FPS):
-        pass
+        super().__init__(game,rpg,game.weapon_info[rpg],FPS)
+    
+    
 
 class Melee_Weapon:
     def __init__(self,game,weapon):
@@ -262,6 +264,10 @@ class Grenade(Throwable):
 
         self.width = self.image.get_width()
         self.height = self.image.get_height()
+        self.rect.width = self.width
+        self.rect.height = self.height
+        self.physics_obj.rect.width = self.width
+        self.physics_obj.rect.height = self.height
 
         self.angle = angle
         self.vel_y = math.sin(self.angle)*self.vel
@@ -317,3 +323,57 @@ class Grenade(Throwable):
     
     def get_explode_lifetime(self):
         return self.explode_lifetime
+
+
+
+class Molotov(Throwable):
+    def __init__(self, game, x, y, vel, angle):
+        super().__init__(game, x, y, 5, 5, vel)
+        
+        self.image = pygame.image.load("data/images/weapons/molotov.png").convert()
+        self.image.set_colorkey((255,255,255))
+
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.rect.width = self.width
+        self.rect.height = self.height
+        self.physics_obj.rect.width = self.width
+        self.physics_obj.rect.height = self.height
+
+        self.angle = angle
+        self.vel_y = math.sin(self.angle)*self.vel
+        self.gravity = 0.3
+        self.vel_x = math.cos(self.angle)*self.vel
+        self.blast_raduis = 0
+        self.max_raduis = 20
+        self.burn_lifetime = 0.05*self.game.target_fps
+        self.burning = False
+        self.dmg = 10
+    
+    def move(self,tiles,dt):
+        movement = [0,0]
+
+        movement[0] += self.vel_x * dt * self.game.target_fps
+        movement[1] += self.vel_y * dt * self.game.target_fps
+        self.vel_y += self.gravity * dt * self.game.target_fps
+
+        if self.vel_y > 7:
+            self.vel_y = 7
+
+        if self.burning == False:
+            self.collisions = self.physics_obj.movement(movement, tiles)
+            self.rect = self.physics_obj.rect
+            self.x = self.rect.x
+            self.y = self.rect.y
+
+        if self.collisions["bottom"] == True:
+            self.vel_x = (self.vel_x*0.5)
+            #self.vel_y = -(self.vel_y*0.3)
+            self.burning = True
+            self.blast_raduis = self.max_raduis
+        
+        if self.collisions["right"] == True or self.collisions["left"] == True:
+            self.vel_x = -self.vel_x
+        
+        if self.collisions['top'] == True:
+            self.vel_y = 1

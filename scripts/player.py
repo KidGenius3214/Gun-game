@@ -51,6 +51,11 @@ class Player(scripts.Entity):
         # First 4 slots are where the weapons are stored
         self.inventory = scripts.Inventory(7)
 
+        #Effects
+        self.effect = "None"
+        self.effect_count = 10
+        self.effect_time = 0
+
     def add_weapon_item(self,item): #add weapons
         free_slots = self.inventory.free_slots()
         if len(free_slots) != 0:
@@ -259,9 +264,22 @@ class Player(scripts.Entity):
     def add_shield(self,amount):
         self.shield += amount
         if self.shield > self.max_shield:
-            self.shield = self.max_shield # max value of the shield is 150            
+            self.shield = self.max_shield # max value of the shield is 150    
+
+
+    def manage_effects(self):
+        if self.effect == "burning":
+            count = self.effect_count
+            self.damage('burn',1)
+            self.effect_time += 1
+
+            if self.effect_time >= 20:
+                self.effect_time = 0
+                self.effect = "None"
 
     def update(self):
+        self.manage_effects()
+
         if self.hurt == True:
             self.dmg_timer -= 1
             if self.dmg_timer < 0:

@@ -298,6 +298,8 @@ class Entity:
         self.rect.y = y
         self.physics_obj.x = x
         self.physics_obj.y = y
+        self.physics_obj.rect.x = x
+        self.physics_obj.rect.y = y
 
 class Particle:
     def __init__(self, x, y, size,shape_type,color,motion,size_decrease=1,grav=None,outline=None):
