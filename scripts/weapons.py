@@ -205,35 +205,35 @@ class Melee_Weapon:
         self.dmg = self.weapon_info["damage"]
         self.crit_dmg = self.weapon_info["crit_dmg"]
         self.crit_rate = self.weapon_info["crit_rate"]
-        self.attack_speed = self.weapon_info["attack_speed"]*self.game.game.FPS
         self.slash_speed = self.weapon_info["speed"]
         self.lifetime = self.weapon_info["lifetime"]
         self.flip = True
         self.attacked = False
-
-        # Rendering stuff
-        # ======================================================================
-        self.render_offset = self.weapon_info["render_offset"]
-        self.render_offset_copy = self.weapon_info["render_offset"]
-        self.inv_render_offset = [-self.render_offset[0],self.render_offset[1]]
-        # ======================================================================
+        self.timer = Timer(self.weapon_info["attack_speed"])
+        self.angle = 0
+        self.rect = pygame.Rect(0,0,self.img.get_width()/2,self.img.get_height())
     
     def render(self,surf,scroll,pos,angle):
-        if self.flip == True:
-            self.render_offset = self.inv_render_offset
-        else:
-            self.render_offset = self.render_offset_copy
+        if self.attacked == True:
+            self.rect.x = (pos[0] + math.cos(math.radians(-self.angle))*7)
+            self.rect.y = (pos[1] + math.sin(math.radians(-self.angle))*7)
+            blit_center(surf, pygame.transform.rotate(pygame.transform.flip(self.img,False,self.flip), self.angle), [self.rect.x-scroll[0], self.rect.y-scroll[1]])
 
-        blit_center(surf,pygame.transform.rotate(pygame.transform.flip(self.img, False, self.flip),angle),[(pos[0]+self.render_offset[0])-scroll[0],(pos[1]+self.render_offset[1])-scroll[1]])
-    
+    def attack(self,angle,pos):
+        if self.attacked == False:
+            self.attacked = True
+            self.timer.make_var_false()
+            self.timer.set_time()
+            self.angle = math.degrees(-angle)
+            self.rect.x = (pos[0] + math.cos(math.radians(-self.angle))*7)
+            self.rect.y = (pos[1] + math.sin(math.radians(-self.angle))*7)
+
     def update(self,surf,scroll,pos,angle):
         self.render(surf,scroll,pos,angle)
+        self.timer.update()
 
-        if self.attacked == True:
-            self.attack_speed -= 1
-            if self.attack_speed <= 0:
-                self.attacked = False
-                self.attack_speed = self.weapon_info["attack_speed"]*self.game.game.FPS
+        if self.timer.get_var() == True:
+            self.attacked = False
 
 class Ammo:
     def __init__(self,game,ammo_type):

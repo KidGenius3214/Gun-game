@@ -19,6 +19,25 @@ def get_wifi_ip():
         ip = data_list[data_list.index("Wireless LAN adapter Wi-Fi:\r")+4].lstrip().split("IPv4 Address. . . . . . . . . . . : ")[1].split("\r")[0] # get ip when connected to wifi
     return ip
 
+def rotate(point, angle, origin, Round = False):
+        x = point[0] - origin[0]
+        y = point[1] - origin[1]
+        
+        Cos = math.cos(math.radians(angle))
+        Sin = math.sin(math.radians(angle))
+
+        if Round == True:
+            xPrime = (round(x * Cos)) - (round(y * Sin))
+            yPrime = (round(x * Sin)) + (round(y * Cos))
+        else:
+            xPrime = (x * Cos) - (y * Sin)
+            yPrime = (x * Sin) + (y * Cos)
+            
+        xPrime += origin[0]
+        yPrime += origin[1]
+        newPoint = [xPrime, yPrime]
+        return newPoint
+
 class GameManager:
     def __init__(self,game,play_type):
         self.game = game
@@ -32,7 +51,7 @@ class GameManager:
         self.particles = []
         self.items = []
         self.entities = []
-        self.entities.append(scripts.Bad_Guy(self,5*self.game.TILESIZE,0,self.game.TILESIZE,self.game.TILESIZE,100,0.1,6,0.3))
+        self.entities.append(scripts.Bad_Guy(self,2*self.game.TILESIZE,0,self.game.TILESIZE,self.game.TILESIZE,100,0.1,6,0.3))
         self.enemy_ids = ["Bad Guy"]
         self.level = None
         self.tiles = self.game.tiles
@@ -213,6 +232,74 @@ class GameManager:
                                     controller_states["buttons"]["shoot"] = False
 
         return controller_states
+    
+    def find_min_and_max(self, rect, angle, axis, normal):
+        a = (pygame.math.Vector2(rotate(rect.topleft, angle, rect.center))).dot(normal)
+        b = (pygame.math.Vector2(rotate(rect.topright, angle, rect.center))).dot(normal)
+        c = (pygame.math.Vector2(rotate(rect.bottomleft, angle, rect.center))).dot(normal)
+        d = (pygame.math.Vector2(rotate(rect.bottomright, angle, rect.center))).dot(normal)
+
+        projections = [a,b,c,d]
+
+        Min = projections[0]
+        for proj in projections:
+            if proj < Min:
+                Min = proj
+        
+        Max = projections[0]
+        for proj in projections:
+            if proj > Max:
+                Max = proj
+        
+        return [Min, Max]
+                
+
+    def SAT_Collision(self, A, B, rotA, rotB):
+        #X axis
+        Axis1 = rotate([1,0], rotA, [0,0])
+        Axis2 = rotate([1,0], rotB, [0,0])
+
+        #Y axis
+        Axis3 = rotate([0,1], rotA, [0,0])
+        Axis4 = rotate([0,1], rotB, [0,0])
+
+        x_axis = [Axis1, Axis2]
+        y_axis = [Axis3, Axis4]
+
+        axis_check = [False,False,False,False]
+        #check x-axis
+        for i, axis in enumerate(x_axis):
+            Amin, Amax = self.find_min_and_max(A, rotA, 'x', axis)
+            Bmin, Bmax = self.find_min_and_max(B, rotB, 'x', axis)
+
+            if Bmin < Amax and Bmax > Amin:
+                axis_check[i] = True
+        
+        #check y-axis
+        for i, axis in enumerate(y_axis):
+            j = i + 2
+
+            Amin, Amax = self.find_min_and_max(A, rotA, 'y', axis)
+            Bmin, Bmax = self.find_min_and_max(B, rotB, 'y', axis)
+
+            if Bmin < Amax and Bmax > Amin:
+                axis_check[j] = True
+        
+        collision = (axis_check == [True,True,True,True])
+        return collision
+
+    def melee_attack_logic(self,weapon):
+        angle = -weapon.angle
+        rect = weapon.rect
+        if self.player.flip == True:
+            rect = pygame.Rect(rect.x-rect.width, rect.y, rect.width, rect.height)
+        for enemy in self.entities:
+            #Get All axis for the rect and enemy rect
+            if self.SAT_Collision(rect, enemy.rect, angle, 0) == True:
+                print("sliced")
+                enemy.damage("player", weapon.dmg)
+                print(enemy.health)
+
 
     def singleplayer_game(self):
         self.game.display.fill((90,90,90))
@@ -220,6 +307,8 @@ class GameManager:
         pos = pygame.mouse.get_pos()
         size_dif = float(self.game.screen.get_width()/self.game.display.get_width())
         self.relative_pos = [int(pos[0]/size_dif), int(pos[1]/size_dif)]
+
+        #print( self.SAT_Collision(pygame.Rect(200, 300, 50, 50), pygame.Rect(200, 300, 50, 50), 5, 0) )
 
         #Delta Time calculation
         now = time.time()
@@ -349,6 +438,10 @@ class GameManager:
                     self.player.equipped_weapon.flip = False
                     self.player.flip = False
                 self.player.equipped_weapon.update(self.game.display,scroll,[self.player.get_center()[0],self.player.get_center()[1]],math.degrees(-angle))
+                if pygame.mouse.get_pressed()[0] == True and self.player.melee_attacked == False:
+                    self.player.melee_attacked = True
+                    self.player.equipped_weapon.attack(angle,[self.player.get_center()[0],self.player.get_center()[1]])
+                    self.melee_attack_logic(self.player.equipped_weapon)
                 if controller_input["active"] == True:
                     x = self.controller_pos[0]+scroll[0]
                     if x < self.player.get_center()[0]:
@@ -670,18 +763,23 @@ class GameManager:
 
             if event.type == MOUSEBUTTONDOWN:
                 if self.show_console == False:
-                    if event.button == 5:
+                    if event.button == 4:
                         self.player.change_weapon(0,decrease=True)
                         if self.zoom > 1 and self.player.equipped_weapon.weapon_group != "Snipers":
                             self.zoom = 1
                             self.zoom_index = 0
                             self.change_dims()
-                    if event.button == 4:
+                    if event.button == 5:
                         self.player.change_weapon(0,increase=True)
                         if self.zoom > 1 and self.player.equipped_weapon.weapon_group != "Snipers":
                             self.zoom = 1
                             self.zoom_index = 0
                             self.change_dims()
+            if event.type == MOUSEBUTTONUP:
+                if event.button == 1:
+                    if self.player.equipped_weapon != None:
+                        if self.player.equipped_weapon.weapon_group == 'Melee':
+                            self.player.melee_attacked = False
                         
         self.game.screen.blit(pygame.transform.scale(self.game.display, (self.game.screen.get_width(),self.game.screen.get_height())), (0,0))
         pygame.display.update()

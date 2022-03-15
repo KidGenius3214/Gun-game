@@ -39,13 +39,14 @@ class Player(scripts.Entity):
         self.jump_direction = 1
         self.wall_jump_tick = 7
 
-        # Gun stuff
+        # weapon stuff
         self.equipped_weapon = None
         self.WEAPON_LIMIT = 4
         self.weapon_index = 0
         self.weapon_count = 0
         self.alive = True
         self.no_space = False
+        self.melee_attacked = False
 
         # Inventory stuff
         # First 4 slots are where the weapons are stored

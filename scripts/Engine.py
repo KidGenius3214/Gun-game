@@ -111,6 +111,30 @@ class Image_Manager:
 
         return img_list
 
+
+class Timer:
+    def __init__(self, cooldown):
+        self.var = True
+        self.time = None
+        self.cooldown = cooldown
+    
+    def set_time(self):
+        self.time = pygame.time.get_ticks()
+    
+    def make_var_false(self):
+        self.var = False
+    
+    def get_var(self):
+        return self.var
+    
+    def update(self):
+        if self.var == False:
+            current_time = pygame.time.get_ticks()
+
+            if current_time - self.time >= self.cooldown:
+                self.var = True
+
+
 class XML_TREE:
     def __init__(self):
         self.id = "XML_TREE"

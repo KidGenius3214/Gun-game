@@ -7,7 +7,7 @@
 "Desert Eagle":{"image":"data/images/weapons/Desert_eagle.png","bullet_image":null,"bullet_size":[2,1],"damage":10,"crit_dmg":[10,20],"crit_rate":0.12,"reload_time":0.6,"pause":0.15,"speed":10,"b_lifetime":80,"ammo":196,"ammo_loaded":7,"render_offset":[0,0], "bullet_offset":[0,0]},
 "Gold Desert Eagle":{"image":"data/images/weapons/Desert_eagle_gold.png","bullet_image":null,"bullet_size":[2,1],"damage":0.8,"crit_dmg":[25,40],"crit_rate":4,"reload_time":0.6,"pause":0.15,"speed":10,"b_lifetime":80,"ammo":196,"ammo_loaded":7,"render_offset":[0,0], "bullet_offset":[0,0]}, 
 "N83":{"image":"data/images/weapons/N83.png","bullet_image":null,"bullet_size":[6,2],"damage":40,"crit_dmg":[50,60],"crit_rate":0.04,"reload_time":1.2,"pause":0.5,"speed":15.4,"b_lifetime":330,"ammo":40,"ammo_loaded":4,"render_offset":[0,0], "bullet_offset":[0,0], "zoom_distances":[1.5]},
-"Sword":{"image":"data/images/weapons/Sword.png","damage":3,"crit_dmg":[5,8],"crit_rate":0.4,"attack_speed":0.1,"render_offset":[0,0],"attacks":["Sword_attack1"], "lifetime":10, "speed":10},
+"Sword":{"image":"data/images/weapons/Sword.png","damage":5,"crit_dmg":[5,8],"crit_rate":0.4,"attack_speed":100,"render_offset":[0,0],"attacks":["Sword_attack1"], "lifetime":10, "speed":10},
 "Shotguns":["Pump Shotgun"],
 "Pistols":["Revolver","Desert Eagle","Gold Desert Eagle"],
 "Rifles":["P90","Aug","Famas"],
