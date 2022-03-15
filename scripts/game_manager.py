@@ -51,7 +51,7 @@ class GameManager:
         self.particles = []
         self.items = []
         self.entities = []
-        self.entities.append(scripts.Bad_Guy(self,2*self.game.TILESIZE,0,self.game.TILESIZE,self.game.TILESIZE,100,0.1,6,0.3))
+        self.entities.append(scripts.Bad_Guy(self,5*self.game.TILESIZE,0,self.game.TILESIZE,self.game.TILESIZE,100,0.1,6,0.3))
         self.enemy_ids = ["Bad Guy"]
         self.level = None
         self.tiles = self.game.tiles
@@ -296,10 +296,10 @@ class GameManager:
         for enemy in self.entities:
             #Get All axis for the rect and enemy rect
             if self.SAT_Collision(rect, enemy.rect, angle, 0) == True:
-                print("sliced")
                 enemy.damage("player", weapon.dmg)
-                print(enemy.health)
-
+    
+    def melee_attack_logic2(self,weapon):
+        pass
 
     def singleplayer_game(self):
         self.game.display.fill((90,90,90))
@@ -547,10 +547,13 @@ class GameManager:
 
         self.player.update()
 
+        health_calc = ((self.player.health*172)/self.player.max_health)
+        full_health = ((self.player.max_health*172)/self.player.max_health)
+        pygame.draw.rect(self.game.display,(255,0,0),(2*self.zoom,2*self.zoom,round(full_health*self.zoom),round(20*self.zoom)))
+        pygame.draw.rect(self.game.display,(0,255,0),(2*self.zoom,2*self.zoom,round(health_calc*self.zoom),round(20*self.zoom)))
+
         self.game.display.blit(pygame.transform.scale(self.game.health_bar_img,(round((self.game.health_bar_img.get_width()*2)*self.zoom),
-                                                                                round((self.game.health_bar_img.get_height()*2)*self.zoom))),(2,2))
-        health_calc = ((self.player.health*168)/self.player.max_health)
-        pygame.draw.rect(self.game.display,(0,255,0),(4,4,round(health_calc*self.zoom),round(16*self.zoom)))
+                                                                                round((self.game.health_bar_img.get_height()*2)*self.zoom))),(2*self.zoom,2*self.zoom))
 
         self.fonts["font_1"][0].render(self.game.display,f"{self.player.shield}",(self.game.health_bar_img.get_width()*2)+6,2,(127,127,127))
 
@@ -565,7 +568,7 @@ class GameManager:
                 if self.player.equipped_weapon.ammo <= 0 and self.player.equipped_weapon.ammo_l <= 0:
                     color = (255,0,0)
                 
-            self.fonts["font_1"][0].render(self.game.display,ammo_text,2,(self.game.health_bar_img.get_height()*2)+7,color)
+            self.fonts["font_1"][int(self.zoom-0.5)].render(self.game.display,ammo_text,2*self.zoom,((self.game.health_bar_img.get_height()*2)+7)*self.zoom,color)
 
 
         #Render the inventory of the player

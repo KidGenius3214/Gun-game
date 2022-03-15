@@ -1,4 +1,3 @@
-# To be done by end of january
 Add more weapons count:12
 Add A Bow
 Add an RPG (Rocket launcher) with explosions
@@ -9,7 +8,6 @@ add throwables:
  -custom bombs
 improve visuals of guns and stuff
 Have a smart AI enemy that can shoot
-work on melee weapons
 Make level editor more visually pleasing and user freindly
 work on multiplayer
 Work on park city background
