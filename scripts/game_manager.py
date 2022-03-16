@@ -408,6 +408,8 @@ class GameManager:
                     if tile[0] in self.tile_data["collidable"]:
                         tiles.append(pygame.Rect(tile[1][0]*self.game.TILESIZE, tile[1][1]*self.game.TILESIZE,self.game.TILESIZE,self.game.TILESIZE))
 
+
+        #Weapon handling
         if self.player.equipped_weapon != None:
             x = self.relative_pos[0]+scroll[0]
             if self.player.equipped_weapon.weapon_group != "Melee":
@@ -438,10 +440,15 @@ class GameManager:
                     self.player.equipped_weapon.flip = False
                     self.player.flip = False
                 self.player.equipped_weapon.update(self.game.display,scroll,[self.player.get_center()[0],self.player.get_center()[1]],math.degrees(-angle))
-                if pygame.mouse.get_pressed()[0] == True and self.player.melee_attacked == False:
-                    self.player.melee_attacked = True
-                    self.player.equipped_weapon.attack(angle,[self.player.get_center()[0],self.player.get_center()[1]])
-                    self.melee_attack_logic(self.player.equipped_weapon)
+                if self.player.equipped_weapon.melee1 == True:
+                    if pygame.mouse.get_pressed()[0] == True and self.player.melee_attacked == False:
+                        self.player.melee_attacked = True
+                        self.player.equipped_weapon.attack(angle,[self.player.get_center()[0],self.player.get_center()[1]])
+                        self.melee_attack_logic(self.player.equipped_weapon)
+                else:
+                    if pygame.mouse.get_pressed()[0] == True:
+                        self.player.melee_attacked = True
+                        self.player.equipped_weapon.attack2(angle)
                 if controller_input["active"] == True:
                     x = self.controller_pos[0]+scroll[0]
                     if x < self.player.get_center()[0]:

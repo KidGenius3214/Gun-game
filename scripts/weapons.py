@@ -212,12 +212,29 @@ class Melee_Weapon:
         self.timer = Timer(self.weapon_info["attack_speed"])
         self.angle = 0
         self.rect = pygame.Rect(0,0,self.img.get_width()/2,self.img.get_height())
+        self.melee1 = False
+        self._render = True
+        self.arc = scripts.Arc(15, 0, 1, 2, 1)
+
+        self.render_offset = self.weapon_info["render_offset"]
+        self.render_offset_copy = self.weapon_info["render_offset"]
+
+        self.inv_render_offset = [-self.render_offset[0],self.render_offset[1]]
     
     def render(self,surf,scroll,pos,angle):
-        if self.attacked == True:
-            self.rect.x = (pos[0] + math.cos(math.radians(-self.angle))*7)
-            self.rect.y = (pos[1] + math.sin(math.radians(-self.angle))*7)
-            blit_center(surf, pygame.transform.rotate(pygame.transform.flip(self.img,False,self.flip), self.angle), [self.rect.x-scroll[0], self.rect.y-scroll[1]])
+        if self.melee1 == True:
+            if self.attacked == True:
+                self.rect.x = (pos[0] + math.cos(math.radians(-self.angle))*7)
+                self.rect.y = (pos[1] + math.sin(math.radians(-self.angle))*7)
+                blit_center(surf, pygame.transform.rotate(pygame.transform.flip(self.img,False,self.flip), self.angle), [self.rect.x-scroll[0], self.rect.y-scroll[1]])
+        else:
+            if self.flip == True:
+                self.render_offset = self.inv_render_offset
+            else:
+                self.render_offset = self.render_offset_copy
+
+            if self._render == True:
+                blit_center(surf,pygame.transform.rotate(pygame.transform.flip(self.img, False, self.flip),angle),[(pos[0]+self.render_offset[0])-scroll[0],(pos[1]+self.render_offset[1])-scroll[1]])
 
     def attack(self,angle,pos):
         if self.attacked == False:
@@ -227,13 +244,30 @@ class Melee_Weapon:
             self.angle = math.degrees(-angle)
             self.rect.x = (pos[0] + math.cos(math.radians(-self.angle))*7)
             self.rect.y = (pos[1] + math.sin(math.radians(-self.angle))*7)
+    
+    def attack2(self, angle):
+        if self.attacked == False:
+            self.attacked = True
+            self._render = False
+            self.timer.make_var_false()
+            self.timer.set_time()
+            self.arc.start_angle = angle
 
     def update(self,surf,scroll,pos,angle):
         self.render(surf,scroll,pos,angle)
         self.timer.update()
 
-        if self.timer.get_var() == True:
-            self.attacked = False
+        if self.melee1 == True:
+            if self.timer.get_var() == True:
+                self.attacked = False
+        else:
+            if self._render == False:
+                self.arc.update()
+                self.arc.render(surf, ((pos[0] + math.cos(math.radians(angle))*15)-scroll[0], (pos[1] + math.sin(math.radians(angle))*15)-scroll[1]), (190,190,190))
+
+                if self.arc.time >= 190:
+                    self._render = True
+                    self.attacked = False
 
 class Ammo:
     def __init__(self,game,ammo_type):
