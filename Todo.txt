@@ -8,7 +8,7 @@ add throwables:
  -custom bombs
 improve visuals of guns and stuff
 Have a smart AI enemy that can shoot
-Make level editor more visually pleasing and user freindly
+Make level editor more visually pleasing and user friendly
 work on multiplayer
 Work on park city background
 Work on Game GUI
