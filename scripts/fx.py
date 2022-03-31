@@ -1,5 +1,5 @@
 import pygame
-from .Engine import *
+from scripts.Engine import *
 
 def advance(pos, angle, amt):
     pos[0] += math.cos(angle) * amt
@@ -21,10 +21,6 @@ class Arc:
     def get_angle_points(self, t, curve_rate):
         p = advance([0,0], self.start_angle + (0.5 - t) * math.pi * 4 * self.width, self.spacing)
         p = advance(p, self.start_angle, (0.5 ** 2 - abs(0.5 - t) ** 2) * self.spacing * curve_rate)
-        if p[0] > self.max_width:
-            self.max_width = p[0]
-        if p[1] > self.max_height:
-            self.max_height = p[1]
         return p
 
     def calculate_points(self, start, end, curve_rate):

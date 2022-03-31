@@ -19,25 +19,6 @@ def get_wifi_ip():
         ip = data_list[data_list.index("Wireless LAN adapter Wi-Fi:\r")+4].lstrip().split("IPv4 Address. . . . . . . . . . . : ")[1].split("\r")[0] # get ip when connected to wifi
     return ip
 
-def rotate(point, angle, origin, Round = False):
-        x = point[0] - origin[0]
-        y = point[1] - origin[1]
-        
-        Cos = math.cos(math.radians(angle))
-        Sin = math.sin(math.radians(angle))
-
-        if Round == True:
-            xPrime = (round(x * Cos)) - (round(y * Sin))
-            yPrime = (round(x * Sin)) + (round(y * Cos))
-        else:
-            xPrime = (x * Cos) - (y * Sin)
-            yPrime = (x * Sin) + (y * Cos)
-            
-        xPrime += origin[0]
-        yPrime += origin[1]
-        newPoint = [xPrime, yPrime]
-        return newPoint
-
 class GameManager:
     def __init__(self,game,play_type):
         self.game = game
@@ -51,6 +32,7 @@ class GameManager:
         self.particles = []
         self.items = []
         self.entities = []
+        self.throwables = []
         self.entities.append(scripts.Bad_Guy(self,5*self.game.TILESIZE,0,self.game.TILESIZE,self.game.TILESIZE,100,0.1,6,0.3))
         self.enemy_ids = ["Bad Guy"]
         self.level = None
@@ -78,16 +60,9 @@ class GameManager:
 
 
         #Fonts
-        self.font1 = scripts.Text("data/images/font.png",1,3)
-        self.font1_x1_5 = scripts.Text("data/images/font.png", round(1*1.5), round(3*1.5))
+        self.font1 = scripts.Text("data/images/font.png",1,6)
 
-        self.font2 = scripts.Text("data/images/font.png",1,2)
-        self.font2_x1_5 = scripts.Text("data/images/font.png", round(1*1.5), round(2*1.5))
-
-        self.font3 = scripts.Text("data/images/font.png",1,1)
-        self.font3_x1_5 = scripts.Text("data/images/font.png", round(1*1.5), round(1*1.5))
-
-        self.fonts = {"font_1": [self.font1, self.font1_x1_5], "font_2":[self.font2, self.font2_x1_5], "font_3":[self.font3, self.font3_x1_5]}
+        self.fonts = {"font_1": [self.font1]}
         
         #controller stuff
         self.controller_input = self.game.json_h.files["controller_input"]
@@ -112,7 +87,6 @@ class GameManager:
         self.position = 25
         self.size = 1
 
-        self.grenade = None
         self.reset_level(self.current_level)
 
     def reload_controller(self):
@@ -231,72 +205,7 @@ class GameManager:
                                 else:
                                     controller_states["buttons"]["shoot"] = False
 
-        return controller_states
-    
-    def find_min_and_max(self, rect, angle, axis, normal):
-        a = (pygame.math.Vector2(rotate(rect.topleft, angle, rect.center))).dot(normal)
-        b = (pygame.math.Vector2(rotate(rect.topright, angle, rect.center))).dot(normal)
-        c = (pygame.math.Vector2(rotate(rect.bottomleft, angle, rect.center))).dot(normal)
-        d = (pygame.math.Vector2(rotate(rect.bottomright, angle, rect.center))).dot(normal)
-
-        projections = [a,b,c,d]
-
-        Min = projections[0]
-        for proj in projections:
-            if proj < Min:
-                Min = proj
-        
-        Max = projections[0]
-        for proj in projections:
-            if proj > Max:
-                Max = proj
-        
-        return [Min, Max]
-                
-
-    def SAT_Collision(self, A, B, rotA, rotB):
-        #X axis
-        Axis1 = rotate([1,0], rotA, [0,0])
-        Axis2 = rotate([1,0], rotB, [0,0])
-
-        #Y axis
-        Axis3 = rotate([0,1], rotA, [0,0])
-        Axis4 = rotate([0,1], rotB, [0,0])
-
-        x_axis = [Axis1, Axis2]
-        y_axis = [Axis3, Axis4]
-
-        axis_check = [False,False,False,False]
-        #check x-axis
-        for i, axis in enumerate(x_axis):
-            Amin, Amax = self.find_min_and_max(A, rotA, 'x', axis)
-            Bmin, Bmax = self.find_min_and_max(B, rotB, 'x', axis)
-
-            if Bmin < Amax and Bmax > Amin:
-                axis_check[i] = True
-        
-        #check y-axis
-        for i, axis in enumerate(y_axis):
-            j = i + 2
-
-            Amin, Amax = self.find_min_and_max(A, rotA, 'y', axis)
-            Bmin, Bmax = self.find_min_and_max(B, rotB, 'y', axis)
-
-            if Bmin < Amax and Bmax > Amin:
-                axis_check[j] = True
-        
-        collision = (axis_check == [True,True,True,True])
-        return collision
-
-    def melee_attack_logic(self,weapon):
-        angle = -weapon.angle
-        rect = weapon.rect
-        if self.player.flip == True:
-            rect = pygame.Rect(rect.x-rect.width, rect.y, rect.width, rect.height)
-        for enemy in self.entities:
-            #Get All axis for the rect and enemy rect
-            if self.SAT_Collision(rect, enemy.rect, angle, 0) == True:
-                enemy.damage("player", weapon.dmg)
+        return controller_states            
     
     def melee_attack_logic2(self,weapon):
         pass
@@ -307,8 +216,6 @@ class GameManager:
         pos = pygame.mouse.get_pos()
         size_dif = float(self.game.screen.get_width()/self.game.display.get_width())
         self.relative_pos = [int(pos[0]/size_dif), int(pos[1]/size_dif)]
-
-        #print( self.SAT_Collision(pygame.Rect(200, 300, 50, 50), pygame.Rect(200, 300, 50, 50), 5, 0) )
 
         #Delta Time calculation
         now = time.time()
@@ -364,6 +271,9 @@ class GameManager:
                     item.pickup_cooldown = 0
                 item.render(self.game.display,scroll)
         
+        for throwable in self.throwables:
+            throwable.draw(self.game.display, scroll)
+
         b_remove_list = []
         n = 0
         for bullet in self.bullets:
@@ -440,15 +350,9 @@ class GameManager:
                     self.player.equipped_weapon.flip = False
                     self.player.flip = False
                 self.player.equipped_weapon.update(self.game.display,scroll,[self.player.get_center()[0],self.player.get_center()[1]],math.degrees(-angle))
-                if self.player.equipped_weapon.melee1 == True:
-                    if pygame.mouse.get_pressed()[0] == True and self.player.melee_attacked == False:
-                        self.player.melee_attacked = True
-                        self.player.equipped_weapon.attack(angle,[self.player.get_center()[0],self.player.get_center()[1]])
-                        self.melee_attack_logic(self.player.equipped_weapon)
-                else:
-                    if pygame.mouse.get_pressed()[0] == True:
-                        self.player.melee_attacked = True
-                        self.player.equipped_weapon.attack2(angle)
+                if pygame.mouse.get_pressed()[0] == True:
+                    self.player.melee_attacked = True
+                    self.player.equipped_weapon.attack2(angle)
                 if controller_input["active"] == True:
                     x = self.controller_pos[0]+scroll[0]
                     if x < self.player.get_center()[0]:
@@ -483,6 +387,35 @@ class GameManager:
                 self.bullets.pop(bullet)
             except:
                 pass
+        
+        t_remove_list = []
+        n = 0
+        for throwable in self.throwables:
+            throwable.move(tiles, self.dt)
+            if throwable.exploded == True:
+                t_remove_list.append(n)
+            if scripts.dis_between_points(self.player.get_center(), (throwable.rect.x, throwable.rect.y)) < throwable.blast_raduis:
+                dmg = throwable.dmg-(scripts.dis_between_points(self.player.get_center(), (throwable.rect.x, throwable.rect.y)) * 0.5)
+                if scripts.dis_between_points(self.player.get_center(), (throwable.rect.x, throwable.rect.y)) < 20:
+                    dmg = throwable.dmg
+                else:
+                    dmg -= int(random.random()*10)
+                self.player.damage("grenade", int(dmg))
+
+            for e in self.entities:
+                if scripts.dis_between_points(e.get_center(), (throwable.rect.x, throwable.rect.y)) < throwable.blast_raduis:
+                    dmg = throwable.dmg-(scripts.dis_between_points(e.get_center(), (throwable.rect.x, throwable.rect.y)) * 0.5)
+                    if scripts.dis_between_points(e.get_center(), (throwable.rect.x, throwable.rect.y)) < 20:
+                        dmg = throwable.dmg
+                    else:
+                        dmg -= int(random.random()*10)
+                    e.damage("grenade", int(dmg))
+                    print(e.health)
+            n += 1
+        t_remove_list.sort(reverse=True)
+        for t in t_remove_list:
+            if throwable.explode_lifetime <= 0:
+                self.throwables.pop(t)
 
         p_remove_list = []
         n = 0
@@ -523,11 +456,11 @@ class GameManager:
                                         if self.player.add_weapon_item(item) == True:
                                             item_remove_list.append(n)
                                             self.player.equip_weapon()
-                                if pygame.key.get_pressed()[self.key_inputs["equip"]] == True:
+                                if pygame.key.get_pressed()[self.key_inputs["equip"][0]] == True:
                                     if self.player.add_weapon_item(item) == True:
                                         item_remove_list.append(n)
                                         self.player.equip_weapon()
-                                elif pygame.key.get_pressed()[self.key_inputs["change"]] == True: 
+                                elif pygame.key.get_pressed()[self.key_inputs["change"][0]] == True: 
                                     if self.player.swap_weapon(item) == True:
                                         item_remove_list.append(n)
                                         self.player.equip_weapon()
@@ -552,31 +485,7 @@ class GameManager:
         if self.show_console == True:
             self.console.render()
 
-        self.player.update()
-
-        health_calc = ((self.player.health*172)/self.player.max_health)
-        full_health = ((self.player.max_health*172)/self.player.max_health)
-        pygame.draw.rect(self.game.display,(255,0,0),(2*self.zoom,2*self.zoom,round(full_health*self.zoom),round(20*self.zoom)))
-        pygame.draw.rect(self.game.display,(0,255,0),(2*self.zoom,2*self.zoom,round(health_calc*self.zoom),round(20*self.zoom)))
-
-        self.game.display.blit(pygame.transform.scale(self.game.health_bar_img,(round((self.game.health_bar_img.get_width()*2)*self.zoom),
-                                                                                round((self.game.health_bar_img.get_height()*2)*self.zoom))),(2*self.zoom,2*self.zoom))
-
-        self.fonts["font_1"][0].render(self.game.display,f"{self.player.shield}",(self.game.health_bar_img.get_width()*2)+6,2,(127,127,127))
-
-        #Show ammo and gun name
-        if self.player.equipped_weapon != None:
-            color = (255,255,255)
-            if self.player.equipped_weapon.weapon_group != "Melee":
-                ammo_text = f"{self.player.equipped_weapon.ammo}/{self.player.equipped_weapon.ammo_l}"
-            else:
-                ammo_text = "\x00/\x00"
-            if self.player.equipped_weapon.weapon_group != "Melee":
-                if self.player.equipped_weapon.ammo <= 0 and self.player.equipped_weapon.ammo_l <= 0:
-                    color = (255,0,0)
-                
-            self.fonts["font_1"][int(self.zoom-0.5)].render(self.game.display,ammo_text,2*self.zoom,((self.game.health_bar_img.get_height()*2)+7)*self.zoom,color)
-
+        self.player.update(self.dt)
 
         #Render the inventory of the player
         inventory_data = self.player.inventory.get_all_items()
@@ -665,11 +574,11 @@ class GameManager:
                     self.show_console = False
                     
                 if self.show_console == False:
-                    if event.key == self.key_inputs["left"]:
+                    if event.key == self.key_inputs["left"][0]:
                         self.player.left = True
-                    if event.key == self.key_inputs["right"]:
+                    if event.key == self.key_inputs["right"][0]:
                         self.player.right = True
-                    if event.key == self.key_inputs["reload"]:
+                    if event.key == self.key_inputs["reload"][0]:
                         if self.player.equipped_weapon != None:
                             if self.player.equipped_weapon.reload_gun == False:
                                 self.player.equipped_weapon.reload_gun = True
@@ -680,7 +589,7 @@ class GameManager:
                     if event.key == K_c:
                         if self.alt_key == True:
                             self.show_console = True
-                    if event.key == self.key_inputs["drop"]:
+                    if event.key == self.key_inputs["drop"][0]:
                         movement = [0,0]
                         if self.player.flip == True:
                             movement = [-6,-2]
@@ -688,7 +597,7 @@ class GameManager:
                             movement = [4,-2]
                         self.player.drop_weapon(movement)
                             
-                    if event.key == self.key_inputs["sniper_zoom"]:
+                    if event.key == self.key_inputs["sniper_zoom"][0]:
                         if self.player.equipped_weapon != None:
                             if self.player.equipped_weapon.weapon_group == "Snipers":
                                 if self.zoom_index < len(self.player.equipped_weapon.zoom_dis):
@@ -699,7 +608,7 @@ class GameManager:
                                     self.zoom_index = 0
                                 self.change_dims()
                                 
-                    if event.key == self.key_inputs["jump"]:
+                    if event.key == self.key_inputs["jump"][0]:
                         if self.player.jump_count < 2 and self.player.on_wall == False:
                             self.player.vel_y = -self.player.jump
                             self.player.jump_count += 1
@@ -707,8 +616,10 @@ class GameManager:
                             self.player.wall_jump_true = True
                             self.player.jump_count = 1
                     
-                    if event.key == self.key_inputs["throwables"]:
-                        print("Thrown")
+                    if event.key == self.key_inputs["throwables"][0]:
+                        throwable = scripts.Grenade(self, self.player.get_center()[0], self.player.get_center()[1], 6, angle)
+                        self.throwables.append(throwable)
+
                     
                     if event.key == K_F1:
                         self.show_fps = not self.show_fps
@@ -790,8 +701,31 @@ class GameManager:
                     if self.player.equipped_weapon != None:
                         if self.player.equipped_weapon.weapon_group == 'Melee':
                             self.player.melee_attacked = False
-                        
+
+        # Rendering stuff               
         self.game.screen.blit(pygame.transform.scale(self.game.display, (self.game.screen.get_width(),self.game.screen.get_height())), (0,0))
+        health_calc = ((self.player.health*172)/self.player.max_health)
+        full_health = ((self.player.max_health*172)/self.player.max_health)
+        pygame.draw.rect(self.game.screen ,(255,0,0),(4 ,4 ,full_health*2 , 40 ))
+        pygame.draw.rect(self.game.screen ,(0,255,0),(4 ,4 ,health_calc*2 , 40 ))
+
+        self.game.screen.blit(pygame.transform.scale(self.game.health_bar_img,(self.game.health_bar_img.get_width()*4, self.game.health_bar_img.get_height()*4)), (4,4))
+
+        self.fonts["font_1"][0].render(self.game.screen,f"{self.player.shield}",(self.game.health_bar_img.get_width()*4)+12,6,(127,127,127))
+
+        #Show ammo and gun name
+        if self.player.equipped_weapon != None:
+            color = (255,255,255)
+            if self.player.equipped_weapon.weapon_group != "Melee":
+                ammo_text = f"{self.player.equipped_weapon.ammo}/{self.player.equipped_weapon.ammo_l}"
+            else:
+                ammo_text = "\x00/\x00"
+            if self.player.equipped_weapon.weapon_group != "Melee":
+                if self.player.equipped_weapon.ammo <= 0 and self.player.equipped_weapon.ammo_l <= 0:
+                    color = (255,0,0)
+                
+            self.fonts["font_1"][0].render(self.game.screen,ammo_text,4,((self.game.health_bar_img.get_height()*4)+14),color)
+
         pygame.display.update()
 
     # Multiplayer setup,managing and gameplay goes here

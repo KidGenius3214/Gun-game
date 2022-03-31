@@ -72,7 +72,99 @@ def line_to_rect_collide(start,end,rect):
         if point != None:
             return [point,True]
     return [[0,0],False]
-       
+
+def rect_with_circle(rect, c_raduis, c_pos):
+    dis = dis_between_points(rect.topleft, c_pos)
+    if dis < c_raduis:
+        return True
+    
+    if dis_between_points(rect.topright, c_pos):
+        return True
+
+    return False
+
+
+def dis_between_points(p1, p2):
+    dis = math.sqrt((p2[0]-p1[0])**2 + (p2[1]-p1[1])**2)
+    return dis
+
+def dis_between_points_opt(p1, p2):
+    dis = (p2[0]-p1[0])**2 + (p2[1]-p1[1])**2
+    return dis
+
+def rotate(point, angle, origin, Round = False):
+        x = point[0] - origin[0]
+        y = point[1] - origin[1]
+        
+        Cos = math.cos(math.radians(angle))
+        Sin = math.sin(math.radians(angle))
+
+        if Round == True:
+            xPrime = (round(x * Cos)) - (round(y * Sin))
+            yPrime = (round(x * Sin)) + (round(y * Cos))
+        else:
+            xPrime = (x * Cos) - (y * Sin)
+            yPrime = (x * Sin) + (y * Cos)
+            
+        xPrime += origin[0]
+        yPrime += origin[1]
+        newPoint = [xPrime, yPrime]
+        return newPoint
+
+ def find_min_and_max(self, rect, angle, axis, normal):
+        a = (pygame.math.Vector2(scripts.rotate(rect.topleft, angle, rect.center))).dot(normal)
+        b = (pygame.math.Vector2(scripts.rotate(rect.topright, angle, rect.center))).dot(normal)
+        c = (pygame.math.Vector2(scripts.rotate(rect.bottomleft, angle, rect.center))).dot(normal)
+        d = (pygame.math.Vector2(scripts.rotate(rect.bottomright, angle, rect.center))).dot(normal)
+
+        projections = [a,b,c,d]
+
+        Min = projections[0]
+        for proj in projections:
+            if proj < Min:
+                Min = proj
+        
+        Max = projections[0]
+        for proj in projections:
+            if proj > Max:
+                Max = proj
+        
+        return [Min, Max]
+
+ def SAT_Collision(self, A, B, rotA, rotB):
+        #X axis
+        Axis1 = scripts.rotate([1,0], rotA, [0,0])
+        Axis2 = scripts.rotate([1,0], rotB, [0,0])
+
+        #Y axis
+        Axis3 = scripts.rotate([0,1], rotA, [0,0])
+        Axis4 = scripts.rotate([0,1], rotB, [0,0])
+
+        x_axis = [Axis1, Axis2]
+        y_axis = [Axis3, Axis4]
+
+        axis_check = [False,False,False,False]
+        #check x-axis
+        for i, axis in enumerate(x_axis):
+            Amin, Amax = find_min_and_max(A, rotA, 'x', axis)
+            Bmin, Bmax = find_min_and_max(B, rotB, 'x', axis)
+
+            if Bmin < Amax and Bmax > Amin:
+                axis_check[i] = True
+        
+        #check y-axis
+        for i, axis in enumerate(y_axis):
+            j = i + 2
+
+            Amin, Amax = find_min_and_max(A, rotA, 'y', axis)
+            Bmin, Bmax = find_min_and_max(B, rotB, 'y', axis)
+
+            if Bmin < Amax and Bmax > Amin:
+                axis_check[j] = True
+        
+        collision = (axis_check == [True,True,True,True])
+        return collision
+
 
 #Image manager
 class Image_Manager:
@@ -468,12 +560,16 @@ class Animation:
         self.image = self.anim_database[self.states[0]][frame]
 
         
-    def animate(self,state,return_img=False):
+    def animate(self,state,return_img=False,return_frame=False):
         self.frame_count += 1
         if self.frame_count >= len(self.frames[state]):
             self.frame_count = 0
         frame_name = self.frames[state][self.frame_count]
         self.image = self.anim_database[state][frame_name]
-        if return_img != False:
+        if return_img != False and return_frame != True:
             return self.image
+        if return_frame != False and return_img != True:
+            return frame_name
+        if (return_frame and return_img) == True:
+            return [self.image, frame_name]
         

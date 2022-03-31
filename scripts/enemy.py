@@ -15,7 +15,7 @@ class Base_Enemy(scripts.Entity):
         #Health management
         self.health = health
         self.hurt = False
-        self.dmg_timer = 0
+        self.dmg_timer = 40
         self.alive = self.health > 0
 
         self.state = "Idle"
@@ -44,7 +44,7 @@ class Base_Enemy(scripts.Entity):
         if self.hurt == False:
             #print(amount)
             self.health -= amount
-            self.hurt = False
+            self.hurt = True
             if self.health <= 0:
                 self.health = 0
 
@@ -60,8 +60,9 @@ class Base_Enemy(scripts.Entity):
         if self.hurt == True:
             self.dmg_timer -= 1
             if self.dmg_timer <= 0:
-                self.dmg_timer = 0
+                self.dmg_timer = 40
                 self.hurt = False
+        
 
         if self.health <= 0:
             self.alive = False

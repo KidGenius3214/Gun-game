@@ -26,7 +26,7 @@ class Player(scripts.Entity):
         self.health = health
         self.max_health = health
         self.hurt = False
-        self.dmg_timer = 0 #make sure player does not lose an excessive amount of health
+        self.dmg_timer = 40 #make sure player does not lose an excessive amount of health
         self.shield = 0
         self.max_shield = 150
         self.has_shield = self.shield > 0
@@ -252,10 +252,18 @@ class Player(scripts.Entity):
                 if self.health < 0:
                     self.health = 0
             else:
+                left_over = self.shield-amount
                 self.shield -= amount
                 self.hurt = True
                 if self.shield < 0:
                     self.shield = 0
+                    if left_over < 0:
+                        self.health -= (-left_over)
+                        self.health -= amount
+                        self.hurt = True
+                        if self.health < 0:
+                            self.health = 0
+
 
     def add_health(self,amount):
         self.health += amount
@@ -278,13 +286,13 @@ class Player(scripts.Entity):
                 self.effect_time = 0
                 self.effect = "None"
 
-    def update(self):
+    def update(self, dt):
         self.manage_effects()
 
         if self.hurt == True:
-            self.dmg_timer -= 1
+            self.dmg_timer -= 1*dt*self.game.target_fps
             if self.dmg_timer < 0:
-                self.dmg_timer = 0
+                self.dmg_timer = 40
                 self.hurt = False
 
         self.has_shield = self.shield > 0

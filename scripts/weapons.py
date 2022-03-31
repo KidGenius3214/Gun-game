@@ -212,7 +212,6 @@ class Melee_Weapon:
         self.timer = Timer(self.weapon_info["attack_speed"])
         self.angle = 0
         self.rect = pygame.Rect(0,0,self.img.get_width()/2,self.img.get_height())
-        self.melee1 = False
         self._render = True
         self.arc = scripts.Arc(15, 0, 1, 2, 1)
 
@@ -222,28 +221,13 @@ class Melee_Weapon:
         self.inv_render_offset = [-self.render_offset[0],self.render_offset[1]]
     
     def render(self,surf,scroll,pos,angle):
-        if self.melee1 == True:
-            if self.attacked == True:
-                self.rect.x = (pos[0] + math.cos(math.radians(-self.angle))*7)
-                self.rect.y = (pos[1] + math.sin(math.radians(-self.angle))*7)
-                blit_center(surf, pygame.transform.rotate(pygame.transform.flip(self.img,False,self.flip), self.angle), [self.rect.x-scroll[0], self.rect.y-scroll[1]])
+        if self.flip == True:
+            self.render_offset = self.inv_render_offset
         else:
-            if self.flip == True:
-                self.render_offset = self.inv_render_offset
-            else:
-                self.render_offset = self.render_offset_copy
+            self.render_offset = self.render_offset_copy
 
-            if self._render == True:
-                blit_center(surf,pygame.transform.rotate(pygame.transform.flip(self.img, False, self.flip),angle),[(pos[0]+self.render_offset[0])-scroll[0],(pos[1]+self.render_offset[1])-scroll[1]])
-
-    def attack(self,angle,pos):
-        if self.attacked == False:
-            self.attacked = True
-            self.timer.make_var_false()
-            self.timer.set_time()
-            self.angle = math.degrees(-angle)
-            self.rect.x = (pos[0] + math.cos(math.radians(-self.angle))*7)
-            self.rect.y = (pos[1] + math.sin(math.radians(-self.angle))*7)
+        if self._render == True:
+            blit_center(surf,pygame.transform.rotate(pygame.transform.flip(self.img, False, self.flip),angle),[(pos[0]+self.render_offset[0])-scroll[0],(pos[1]+self.render_offset[1])-scroll[1]])
     
     def attack2(self, angle):
         if self.attacked == False:
@@ -257,17 +241,13 @@ class Melee_Weapon:
         self.render(surf,scroll,pos,angle)
         self.timer.update()
 
-        if self.melee1 == True:
-            if self.timer.get_var() == True:
-                self.attacked = False
-        else:
-            if self._render == False:
-                self.arc.update()
-                self.arc.render(surf, ((pos[0] + math.cos(math.radians(angle))*15)-scroll[0], (pos[1] + math.sin(math.radians(angle))*15)-scroll[1]), (190,190,190))
+        if self._render == False:
+            self.arc.update()
+            self.arc.render(surf, ((pos[0] + math.cos(math.radians(angle))*15)-scroll[0], (pos[1] + math.sin(math.radians(angle))*15)-scroll[1]), (190,190,190))
 
-                if self.arc.time >= 190:
-                    self._render = True
-                    self.attacked = False
+            if self.arc.time >= 190:
+                self._render = True
+                self.attacked = False
 
 class Ammo:
     def __init__(self,game,ammo_type):
@@ -296,6 +276,10 @@ class Grenade(Throwable):
         self.image = pygame.image.load("data/images/weapons/grenade.png").convert()
         self.image.set_colorkey((255,255,255))
 
+        #explosion animation
+        self.anim = scripts.Animation()
+        self.anim.load_anim("exp", "data/images/animations/explosion/exp", "png", [5,5,5,5,5],(0,0,0))
+
         self.width = self.image.get_width()
         self.height = self.image.get_height()
         self.rect.width = self.width
@@ -308,13 +292,23 @@ class Grenade(Throwable):
         self.gravity = 0.3
         self.vel_x = math.cos(self.angle)*self.vel
         self.blast_raduis = 0
-        self.max_raduis = 100
+        self.max_raduis = 55
         self.timer = 1*self.game.target_fps
-        self.explode_lifetime = 0.05*self.game.target_fps
+        self.explode_lifetime = 16
         self.exploded = False
         self.dmg = 60
 
-    def move(self,tiles, dt):
+    def draw(self, surf, scroll):
+        if self.exploded == True:
+            img, frame = self.anim.animate("exp", True, True)
+            self.explode_lifetime = 9
+            surf.blit(img, (self.rect.x-(img.get_width()/2)-scroll[0], self.rect.y-(img.get_height()/2)-scroll[1]))
+            if self.anim.frame_count == len(self.anim.frames['exp'])-1:
+                self.explode_lifetime = 0
+        else:
+            surf.blit(self.image, (self.rect.x-scroll[0], self.rect.y-scroll[1]))
+
+    def move(self, tiles, dt):
         movement = [0,0]
 
         movement[0] += self.vel_x * dt * self.game.target_fps
