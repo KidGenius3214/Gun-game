@@ -40,3 +40,14 @@ class Arc:
         points = self.calculate_points(start, end, self.curve_rate + self.time / 5) + self.calculate_points(start, end, (self.curve_rate * 0.5 + self.time / 3) * 0.4)[::-1]
         points = [[p[0] + pos[0], p[1] + pos[1]] for p in points]
         pygame.draw.polygon(surf, color, points)
+
+
+class VFX:
+    def __init__(self, game):
+        self.game = game
+    
+    def render_arc(self):
+        pass
+
+
+        

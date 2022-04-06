@@ -57,6 +57,11 @@ class Player(scripts.Entity):
         self.effect_count = 10
         self.effect_time = 0
 
+        #Burning from molotov variables
+        self.burn_duration = scripts.Timer(3500)
+        self.burn_timer = scripts.Timer(300)
+        self.burn_damage = 0
+
     def add_weapon_item(self,item): #add weapons
         free_slots = self.inventory.free_slots()
         if len(free_slots) != 0:
@@ -264,6 +269,16 @@ class Player(scripts.Entity):
                         if self.health < 0:
                             self.health = 0
 
+    def burn(self, dmg):
+        if self.is_burning() == False:
+            self.burn_duration.make_var_false()
+            self.burn_duration.set_time()
+            self.burn_timer.make_var_false()
+            self.burn_timer.set_time()
+            self.burn_damage = dmg
+    
+    def is_burning(self):
+        return not self.burn_duration.get_var()
 
     def add_health(self,amount):
         self.health += amount
@@ -299,4 +314,16 @@ class Player(scripts.Entity):
 
         if self.health <= 0 :
             self.alive = False
+        
+        self.burn_duration.update()
+
+        if self.is_burning() == True:
+            self.burn_timer.update()
+
+            if self.burn_timer.get_var() == True:
+                self.damage("burning", self.burn_damage)
+                self.burn_timer.make_var_false()
+                self.burn_timer.set_time()
+        else:
+            self.burn_timer.reset()
             

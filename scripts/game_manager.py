@@ -53,6 +53,8 @@ class GameManager:
         self.camera = scripts.Camera()
         self.show_fps = False
         self.EntityManager = scripts.EntityManager(game)
+        self.throwable_classes = [scripts.Grenade, scripts.Molotov, scripts.SmokeGrenade, scripts.FlashBang]
+        self.throwable_index = 0
 
         #Delta time calculation
         self.time_passed = time.time()
@@ -97,6 +99,7 @@ class GameManager:
             self.joystick = pygame.joystick.Joystick(0)
             self.joystick.init()
 
+    #SinglePlayer
     def change_dims(self):
         self.console.change_size([round(self.game.display_dims[0]*self.zoom)-round(4*self.zoom),round(25*self.zoom)],2+round(self.zoom))
         # Change size of display
@@ -272,7 +275,8 @@ class GameManager:
                 item.render(self.game.display,scroll)
         
         for throwable in self.throwables:
-            throwable.draw(self.game.display, scroll)
+            if not isinstance(throwable, scripts.SmokeGrenade):
+                throwable.draw(self.game.display, scroll)
 
         b_remove_list = []
         n = 0
@@ -306,6 +310,10 @@ class GameManager:
             self.entities.pop(enemy)
 
         self.player.draw(self.game.display, scroll)
+
+        for throwable in self.throwables:
+            if isinstance(throwable, scripts.SmokeGrenade):
+                throwable.draw(self.game.display, scroll)
 
         for chunk_id in active_chunks:
             if chunk_id in self.level["tiles"]:
@@ -392,30 +400,57 @@ class GameManager:
         n = 0
         for throwable in self.throwables:
             throwable.move(tiles, self.dt)
-            if throwable.exploded == True:
-                t_remove_list.append(n)
-            if scripts.dis_between_points(self.player.get_center(), (throwable.rect.x, throwable.rect.y)) < throwable.blast_raduis:
-                dmg = throwable.dmg-(scripts.dis_between_points(self.player.get_center(), (throwable.rect.x, throwable.rect.y)) * 0.5)
-                if scripts.dis_between_points(self.player.get_center(), (throwable.rect.x, throwable.rect.y)) < 20:
-                    dmg = throwable.dmg
-                else:
-                    dmg -= int(random.random()*10)
-                self.player.damage("grenade", int(dmg))
 
-            for e in self.entities:
-                if scripts.dis_between_points(e.get_center(), (throwable.rect.x, throwable.rect.y)) < throwable.blast_raduis:
-                    dmg = throwable.dmg-(scripts.dis_between_points(e.get_center(), (throwable.rect.x, throwable.rect.y)) * 0.5)
-                    if scripts.dis_between_points(e.get_center(), (throwable.rect.x, throwable.rect.y)) < 20:
+            if isinstance(throwable, scripts.Grenade):
+                if throwable.explode_lifetime <= 0:
+                    t_remove_list.append(n)
+
+                if scripts.dis_between_points(self.player.get_center(), (throwable.rect.x, throwable.rect.y)) < throwable.blast_raduis:
+                    dmg = throwable.dmg-(scripts.dis_between_points(self.player.get_center(), (throwable.rect.x, throwable.rect.y)) * 0.5)
+                    if scripts.dis_between_points(self.player.get_center(), (throwable.rect.x, throwable.rect.y)) < 20:
                         dmg = throwable.dmg
                     else:
                         dmg -= int(random.random()*10)
-                    e.damage("grenade", int(dmg))
-                    print(e.health)
+                    self.player.damage("grenade", int(dmg))
+
+                for e in self.entities:
+                    if scripts.dis_between_points(e.get_center(), (throwable.rect.x, throwable.rect.y)) < throwable.blast_raduis:
+                        dmg = throwable.dmg-(scripts.dis_between_points(e.get_center(), (throwable.rect.x, throwable.rect.y)) * 0.5)
+                        if scripts.dis_between_points(e.get_center(), (throwable.rect.x, throwable.rect.y)) < 20:
+                            dmg = throwable.dmg
+                        else:
+                            dmg -= int(random.random()*10)
+                        e.damage("grenade", int(dmg))
+            if isinstance(throwable, scripts.Molotov):
+                if throwable.burned == True:
+                    t_remove_list.append(n)
+
+                for flame in throwable.flames:
+                    if self.player.rect.colliderect(flame):
+                        if self.player.is_burning() == False:
+                            self.player.damage("burning", throwable.dmg)
+                        self.player.burn(throwable.dmg)
+
+                    for e in self.entities:
+                        if e.rect.colliderect(flame):
+                            e.damage("burning", throwable.dmg)
+            if isinstance(throwable, scripts.SmokeGrenade):
+                if throwable.done_smoking == True:
+                    t_remove_list.append(n)
+            if isinstance(throwable, scripts.FlashBang):
+                
+                if throwable.exploded == True:
+                    # Check is it is in range to blind player
+                    if scripts.dis_between_points(self.player.get_center(), (throwable.rect.x, throwable.rect.y)) < throwable.raduis:
+                        self.game.display.blit(throwable.surf, (0,0))
+
+                if throwable.surf.get_alpha() == 0:
+                    t_remove_list.append(n)
+
             n += 1
         t_remove_list.sort(reverse=True)
         for t in t_remove_list:
-            if throwable.explode_lifetime <= 0:
-                self.throwables.pop(t)
+            self.throwables.pop(t)
 
         p_remove_list = []
         n = 0
@@ -617,9 +652,13 @@ class GameManager:
                             self.player.jump_count = 1
                     
                     if event.key == self.key_inputs["throwables"][0]:
-                        throwable = scripts.Grenade(self, self.player.get_center()[0], self.player.get_center()[1], 6, angle)
+                        throwable = self.throwable_classes[self.throwable_index](self, self.player.get_center()[0], self.player.get_center()[1], 6, angle)
                         self.throwables.append(throwable)
 
+                    if event.key == self.key_inputs["change_throwable"][0]:
+                        self.throwable_index += 1
+                        if self.throwable_index > len(self.throwable_classes)-1:
+                            self.throwable_index = 0
                     
                     if event.key == K_F1:
                         self.show_fps = not self.show_fps

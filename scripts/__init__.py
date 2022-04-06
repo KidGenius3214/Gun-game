@@ -12,4 +12,4 @@ from .enemy import *
 from .console import *
 from .consumable import *
 from .managers.entity_manager import *
-from .fx import *
+from .vfx import *

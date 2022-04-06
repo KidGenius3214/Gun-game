@@ -1,23 +1,15 @@
-Add more weapons count:12
-Add A Bow
-Add an RPG (Rocket launcher) with explosions
-add throwables:
- -grenade
- -molotov
- -c4 bombs
- -custom bombs
-improve visuals of guns and stuff
-Have a smart AI enemy that can shoot
-Make level editor more visually pleasing and user friendly
-work on multiplayer
-Work on park city background
-Work on Game GUI
+#Work to be done to get to the demo
+Add 15 weapons
+Create Park City story
+Finish combat mechanics
+Create New Art
+Create First Multiplayer Gamemode -> Classic
+Remove The Level Editor From The Demo
 
-# To be done later
-Create story for Park city
-Add the Card System (Powerups,buffs,weapon upgrades, weapon descriptions)
-work on gun upgrading system
-work on in game money system
-Add the first game mode to multiplayer
-Add a Co-op
-add a little reload indicator (bullets dropping, particles falling)
+Classic Gamemode Description:
+-It is just death match
+-Kill other players and gain points
+-Do a fancy end game animation for the game results
+
+#for the level editor
+for the item spawner, have the mouse button scroll through the items and have a window that shows all the game items and you can select one

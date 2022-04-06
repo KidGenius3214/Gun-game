@@ -263,6 +263,11 @@ class Ammo:
         return self.weapon_group
 
 
+
+#==========================================================
+#Throwables section
+#Throwables are things the player can throw at enemies or any other players
+#==========================================================
 class Throwable(scripts.Entity):
     def __init__(self, game, x, y, width, height, vel):
         super().__init__(x, y, width, height, vel, 0)
@@ -356,10 +361,14 @@ class Grenade(Throwable):
 
 class Molotov(Throwable):
     def __init__(self, game, x, y, vel, angle):
-        super().__init__(game, x, y, 5, 5, vel)
+        super().__init__(game, x, y-8, 5, 5, vel)
         
         self.image = pygame.image.load("data/images/weapons/molotov.png").convert()
         self.image.set_colorkey((255,255,255))
+
+        #Flame animation
+        self.anim = scripts.Animation()
+        self.anim.load_anim("burn", "data/images/animations/flame/burn", "png", [7,7,7,7,7,7,7,7],(255,255,255))
 
         self.width = self.image.get_width()
         self.height = self.image.get_height()
@@ -372,12 +381,22 @@ class Molotov(Throwable):
         self.vel_y = math.sin(self.angle)*self.vel
         self.gravity = 0.3
         self.vel_x = math.cos(self.angle)*self.vel
-        self.blast_raduis = 0
-        self.max_raduis = 20
-        self.burn_lifetime = 0.05*self.game.target_fps
+        self.burn_lifetime = 120
         self.burning = False
-        self.dmg = 10
-    
+        self.burned = False
+        self.burn_distance = (-40, 40)
+        self.flames = []
+        self.dmg = 9
+
+    def draw(self,surf,scroll):
+        if self.burning == True:
+            self.anim.animate("burn")
+            for flame in self.flames:
+                surf.blit(self.anim.image, (flame.x-(self.anim.image.get_width()/2)-scroll[0], flame.y-scroll[1]))
+        else:
+            surf.blit(self.image, (self.rect.x-scroll[0], self.rect.y-scroll[1]))
+
+
     def move(self,tiles,dt):
         movement = [0,0]
 
@@ -396,12 +415,182 @@ class Molotov(Throwable):
 
         if self.collisions["bottom"] == True:
             self.vel_x = (self.vel_x*0.5)
-            #self.vel_y = -(self.vel_y*0.3)
             self.burning = True
-            self.blast_raduis = self.max_raduis
+            flame_count = random.randint(6,12)
+            for i in range(flame_count):
+                x = self.rect.x + random.randint(self.burn_distance[0], self.burn_distance[1])
+                y = self.rect.bottom - 11
+                if len(self.flames) < flame_count:
+                    self.flames.append(pygame.Rect(x, y, 9, 11))
         
         if self.collisions["right"] == True or self.collisions["left"] == True:
             self.vel_x = -self.vel_x
         
         if self.collisions['top'] == True:
             self.vel_y = 1
+
+        if self.burning == True:
+            self.burn_lifetime -= 1*dt*self.game.target_fps
+            if self.burn_lifetime <= 0:
+                self.burning = False
+                self.burned = True
+
+
+class SmokeGrenade(Throwable):
+    def __init__(self, game, x, y, vel, angle):
+        super().__init__(game, x, y-8, 5, 5, vel)
+
+        self.image = pygame.image.load("data/images/weapons/SmokeGrenade.png").convert()
+        self.image.set_colorkey((255,255,255))
+
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.rect.width = self.width
+        self.rect.height = self.height
+        self.physics_obj.rect.width = self.width
+        self.physics_obj.rect.height = self.height
+
+        self.angle = angle
+        self.vel_y = math.sin(self.angle)*self.vel
+        self.gravity = 0.3
+        self.vel_x = math.cos(self.angle)*self.vel
+        self.particles = []
+        self.timer = scripts.Timer(1000)
+        self.timer.make_var_false()
+        self.timer.set_time()
+        self.exploded = False
+        self.smoke_lifetime = scripts.Timer(6500)
+        self.done_smoking = False
+    
+    def draw(self, surf, scroll):
+        if self.exploded == True:
+
+            for i in range(3):
+                self.particles.append(scripts.Particle(self.rect.x+random.randint(-40,40), self.rect.y-5, random.randint(30,40),"square", random.choice([(190,190,190), (180,180,180), (140,140,140), (210,210,210)]),[random.randint(0,6)-4, random.randint(-9,-6)+3],size_decrease=0.46, grav=-0.2))
+
+            n = 0
+            p_remove_list = []
+            for p in self.particles:
+                p.render(surf, scroll)
+                if p.size <= 0:
+                    p_remove_list.append(n)
+                
+                n += 1
+            p_remove_list.sort(reverse=True)
+            for p in p_remove_list:
+                try:
+                    p_remove_list.pop(p)
+                except:
+                    pass
+
+            surf.blit(self.image, (self.rect.x-scroll[0], self.rect.y-scroll[1]))
+
+        else:
+            surf.blit(self.image, (self.rect.x-scroll[0], self.rect.y-scroll[1]))
+    
+    def move(self, tiles, dt):
+        movement = [0,0]
+
+        movement[0] += self.vel_x * dt * self.game.target_fps
+        movement[1] += self.vel_y * dt * self.game.target_fps
+        self.vel_y += self.gravity * dt * self.game.target_fps
+
+        if self.vel_y > 7:
+            self.vel_y = 7
+
+        self.collisions = self.physics_obj.movement(movement, tiles)
+        self.rect = self.physics_obj.rect
+        self.x = self.rect.x
+        self.y = self.rect.y
+        
+        if self.collisions["bottom"] == True:
+            self.vel_x = (self.vel_x*0.5)
+            self.vel_y = -(self.vel_y*0.3)
+
+        if self.collisions["right"] == True or self.collisions["left"] == True:
+            self.vel_x = -self.vel_x
+        
+        if self.collisions['top'] == True:
+            self.vel_y = 1
+
+        self.timer.update()
+        if self.timer.get_var() == True:
+            if self.exploded == False:
+                self.exploded = True
+        
+        if self.exploded == True:
+            if self.smoke_lifetime.get_var() == True:
+                self.smoke_lifetime.make_var_false()
+                self.smoke_lifetime.set_time()
+
+            self.smoke_lifetime.update()
+            self.done_smoking = self.smoke_lifetime.get_var()
+        
+
+class FlashBang(Throwable):
+    def __init__(self, game, x, y, vel, angle):
+        super().__init__(game, x, y-8, 5, 5, vel)
+
+        self.image = pygame.image.load("data/images/weapons/FlashBang.png").convert()
+        self.image.set_colorkey((255,255,255))
+
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.rect.width = self.width
+        self.rect.height = self.height
+        self.physics_obj.rect.width = self.width
+        self.physics_obj.rect.height = self.height
+
+        self.angle = angle
+        self.vel_y = math.sin(self.angle)*self.vel
+        self.gravity = 0.3
+        self.vel_x = math.cos(self.angle)*self.vel
+        self.timer = scripts.Timer(1000)
+        self.timer.make_var_false()
+        self.timer.set_time()
+        self.exploded = False
+        self.raduis = 100
+        self.surf = pygame.Surface(self.game.game.display.get_size())
+        self.surf.fill((255,255,255))
+        self.surf.set_alpha(255)
+    
+    def draw(self, surf, scroll):
+        if self.exploded == True:
+            pass
+        else:
+            surf.blit(self.image, (self.rect.x-scroll[0], self.rect.y-scroll[1]))
+    
+    def move(self, tiles, dt):
+        movement = [0,0]
+
+        movement[0] += self.vel_x * dt * self.game.target_fps
+        movement[1] += self.vel_y * dt * self.game.target_fps
+        self.vel_y += self.gravity * dt * self.game.target_fps
+
+        if self.vel_y > 7:
+            self.vel_y = 7
+
+        if self.exploded != True:
+            self.collisions = self.physics_obj.movement(movement, tiles)
+            self.rect = self.physics_obj.rect
+            self.x = self.rect.x
+            self.y = self.rect.y
+        
+        if self.collisions["bottom"] == True:
+            self.vel_x = (self.vel_x*0.5)
+            self.vel_y = -(self.vel_y*0.3)
+
+        if self.collisions["right"] == True or self.collisions["left"] == True:
+            self.vel_x = -self.vel_x
+        
+        if self.collisions['top'] == True:
+            self.vel_y = 1
+
+        self.timer.update()
+        if self.timer.get_var() == True:
+            if self.exploded == False:
+                self.exploded = True
+        
+        if self.exploded == True:
+            surf_opacity = round(self.surf.get_alpha()-(1))
+            self.surf.set_alpha(surf_opacity)

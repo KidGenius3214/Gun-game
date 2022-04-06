@@ -4,9 +4,9 @@
     "jump":[32, "enter"], 
     "reload":[114, "r"], 
     "drop":[113, "q"], 
-    "swap":[115], 
     "sniper_zoom":[122, "z"], 
     "change":[99, "c"], 
     "equip":[101, "e"], 
-    "throwables":[103, "g"]
+    "throwables":[103, "g"],
+    "change_throwable": [116, "t"]
 }
