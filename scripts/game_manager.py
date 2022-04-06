@@ -55,6 +55,9 @@ class GameManager:
         self.EntityManager = scripts.EntityManager(game)
         self.throwable_classes = [scripts.Grenade, scripts.Molotov, scripts.SmokeGrenade, scripts.FlashBang]
         self.throwable_index = 0
+        self.flash_bang_surf = pygame.Surface(self.game.display.get_size())
+        self.flash_bang_surf.fill((255,255,255))
+        self.flash_bang_surf.set_alpha(255)
 
         #Delta time calculation
         self.time_passed = time.time()
@@ -442,9 +445,9 @@ class GameManager:
                 if throwable.exploded == True:
                     # Check is it is in range to blind player
                     if scripts.dis_between_points(self.player.get_center(), (throwable.rect.x, throwable.rect.y)) < throwable.raduis:
-                        self.game.display.blit(throwable.surf, (0,0))
+                        self.player.blinded = True
 
-                if throwable.surf.get_alpha() == 0:
+                if throwable.destroy_timer.get_var() == True:
                     t_remove_list.append(n)
 
             n += 1
@@ -740,6 +743,15 @@ class GameManager:
                     if self.player.equipped_weapon != None:
                         if self.player.equipped_weapon.weapon_group == 'Melee':
                             self.player.melee_attacked = False
+
+        if self.player.blinded == True:
+            opacity = self.flash_bang_surf.get_alpha()-(0.51)
+            self.flash_bang_surf.set_alpha(round(opacity))
+            self.game.display.blit(self.flash_bang_surf, (0,0))
+
+            if opacity <= 1:
+                self.player.blinded = False
+                self.flash_bang_surf.set_alpha(255)
 
         # Rendering stuff               
         self.game.screen.blit(pygame.transform.scale(self.game.display, (self.game.screen.get_width(),self.game.screen.get_height())), (0,0))

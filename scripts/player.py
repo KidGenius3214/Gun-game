@@ -62,6 +62,9 @@ class Player(scripts.Entity):
         self.burn_timer = scripts.Timer(300)
         self.burn_damage = 0
 
+        #Flash bang effect var
+        self.blinded = False
+
     def add_weapon_item(self,item): #add weapons
         free_slots = self.inventory.free_slots()
         if len(free_slots) != 0:

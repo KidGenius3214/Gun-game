@@ -548,11 +548,11 @@ class FlashBang(Throwable):
         self.timer = scripts.Timer(1000)
         self.timer.make_var_false()
         self.timer.set_time()
+        self.destroy_timer = scripts.Timer(10)
+        self.destroy_timer.make_var_false()
+        self.destroy_timer.set_time()
         self.exploded = False
         self.raduis = 100
-        self.surf = pygame.Surface(self.game.game.display.get_size())
-        self.surf.fill((255,255,255))
-        self.surf.set_alpha(255)
     
     def draw(self, surf, scroll):
         if self.exploded == True:
@@ -592,5 +592,4 @@ class FlashBang(Throwable):
                 self.exploded = True
         
         if self.exploded == True:
-            surf_opacity = round(self.surf.get_alpha()-(1))
-            self.surf.set_alpha(surf_opacity)
+            self.destroy_timer.update()
