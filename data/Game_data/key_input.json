@@ -8,5 +8,6 @@
     "change":[99, "c"], 
     "equip":[101, "e"], 
     "throwables":[103, "g"],
-    "change_throwable": [116, "t"]
+    "change_throwable": [116, "t"],
+    "detonate":[120, "x"]
 }

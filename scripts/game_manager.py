@@ -53,7 +53,7 @@ class GameManager:
         self.camera = scripts.Camera()
         self.show_fps = False
         self.EntityManager = scripts.EntityManager(game)
-        self.throwable_classes = [scripts.Grenade, scripts.Molotov, scripts.SmokeGrenade, scripts.FlashBang]
+        self.throwable_classes = [scripts.Grenade, scripts.Molotov, scripts.SmokeGrenade, scripts.FlashBang, scripts.C4Bomb]
         self.throwable_index = 0
         self.flash_bang_surf = pygame.Surface(self.game.display.get_size())
         self.flash_bang_surf.fill((255,255,255))
@@ -314,10 +314,6 @@ class GameManager:
 
         self.player.draw(self.game.display, scroll)
 
-        for throwable in self.throwables:
-            if isinstance(throwable, scripts.SmokeGrenade):
-                throwable.draw(self.game.display, scroll)
-
         for chunk_id in active_chunks:
             if chunk_id in self.level["tiles"]:
                 for tile in self.level["tiles"][chunk_id]:
@@ -328,7 +324,6 @@ class GameManager:
                         self.game.display.blit(self.tiles[self.zone][tile[0]], (tile[1][0]*self.game.TILESIZE-scroll[0], tile[1][1]*self.game.TILESIZE-3-scroll[1]))
                     if tile[0] in self.tile_data["collidable"]:
                         tiles.append(pygame.Rect(tile[1][0]*self.game.TILESIZE, tile[1][1]*self.game.TILESIZE,self.game.TILESIZE,self.game.TILESIZE))
-
 
         #Weapon handling
         if self.player.equipped_weapon != None:
@@ -372,6 +367,10 @@ class GameManager:
                     else:
                         self.player.equipped_weapon.flip = False
                         self.player.flip = False
+
+        for throwable in self.throwables:
+            if isinstance(throwable, scripts.SmokeGrenade):
+                throwable.draw(self.game.display, scroll)
 
         b_remove_list = []
         n = 0
@@ -448,6 +447,19 @@ class GameManager:
                         self.player.blinded = True
 
                 if throwable.destroy_timer.get_var() == True:
+                    t_remove_list.append(n)
+            if isinstance(throwable, scripts.C4Bomb):
+                
+                if throwable.explode == True:
+                    if scripts.dis_between_points(self.player.get_center(), (throwable.rect.x, throwable.rect.y)) < throwable.raduis:
+                        dmg = throwable.dmg-(scripts.dis_between_points(self.player.get_center(), (throwable.rect.x, throwable.rect.y)) * 0.5)
+                        if scripts.dis_between_points(self.player.get_center(), (throwable.rect.x, throwable.rect.y)) < 20:
+                            dmg = throwable.dmg
+                        else:
+                            dmg -= int(random.random()*10)
+                        self.player.damage("c4", int(dmg))
+
+                if throwable.done_exploding == True:
                     t_remove_list.append(n)
 
             n += 1
@@ -656,12 +668,17 @@ class GameManager:
                     
                     if event.key == self.key_inputs["throwables"][0]:
                         throwable = self.throwable_classes[self.throwable_index](self, self.player.get_center()[0], self.player.get_center()[1], 6, angle)
+                        if isinstance(throwable, scripts.C4Bomb):
+                            self.player.c4_list.append(throwable)
                         self.throwables.append(throwable)
 
                     if event.key == self.key_inputs["change_throwable"][0]:
                         self.throwable_index += 1
                         if self.throwable_index > len(self.throwable_classes)-1:
                             self.throwable_index = 0
+                    
+                    if event.key == self.key_inputs["detonate"][0]:
+                        self.player.detonate()
                     
                     if event.key == K_F1:
                         self.show_fps = not self.show_fps

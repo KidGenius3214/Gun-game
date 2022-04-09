@@ -65,6 +65,9 @@ class Player(scripts.Entity):
         #Flash bang effect var
         self.blinded = False
 
+        #C4  bombs
+        self.c4_list = []
+
     def add_weapon_item(self,item): #add weapons
         free_slots = self.inventory.free_slots()
         if len(free_slots) != 0:
@@ -282,6 +285,15 @@ class Player(scripts.Entity):
     
     def is_burning(self):
         return not self.burn_duration.get_var()
+    
+    def add_bomb(self, bomb):
+        self.c4_list.append(bomb)
+
+    def detonate(self):
+        if len(self.c4_list) > 0:
+            if self.c4_list[0].stick == True:
+                self.c4_list[0].explode_bomb()
+                del self.c4_list[0]
 
     def add_health(self,amount):
         self.health += amount
@@ -293,20 +305,7 @@ class Player(scripts.Entity):
         if self.shield > self.max_shield:
             self.shield = self.max_shield # max value of the shield is 150    
 
-
-    def manage_effects(self):
-        if self.effect == "burning":
-            count = self.effect_count
-            self.damage('burn',1)
-            self.effect_time += 1
-
-            if self.effect_time >= 20:
-                self.effect_time = 0
-                self.effect = "None"
-
     def update(self, dt):
-        self.manage_effects()
-
         if self.hurt == True:
             self.dmg_timer -= 1*dt*self.game.target_fps
             if self.dmg_timer < 0:

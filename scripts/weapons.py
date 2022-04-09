@@ -593,3 +593,69 @@ class FlashBang(Throwable):
         
         if self.exploded == True:
             self.destroy_timer.update()
+
+
+class C4Bomb(Throwable):
+    def __init__(self, game, x, y, vel, angle):
+        super().__init__(game, x, y-8, 5, 5, vel)
+
+        self.image = pygame.image.load("data/images/weapons/C4.png").convert()
+        self.image.set_colorkey((255,255,255))
+
+        #explosion animation
+        self.anim = scripts.Animation()
+        self.anim.load_anim("exp", "data/images/animations/explosion/exp", "png", [5,5,5,5,5],(0,0,0))
+
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
+        self.rect.width = self.width
+        self.rect.height = self.height
+        self.physics_obj.rect.width = self.width
+        self.physics_obj.rect.height = self.height
+
+        self.angle = angle
+        self.vel_y = math.sin(self.angle)*self.vel
+        self.gravity = 0.3
+        self.vel_x = math.cos(self.angle)*self.vel
+        self.explode = False
+        self.stick = False
+        self.done_exploding = False
+        self.raduis = 120
+        self.dmg = 100
+    
+    def draw(self, surf, scroll):
+        if self.explode == True:
+            img, frame = self.anim.animate("exp", True, True)
+            surf.blit(img, (self.rect.x-(img.get_width()/2)-scroll[0], self.rect.y-(img.get_height()/2)-scroll[1]))
+            if self.anim.frame_count == len(self.anim.frames['exp'])-1:
+                self.done_exploding =  True
+        else:
+            surf.blit(self.image, (self.rect.x-scroll[0], self.rect.y-scroll[1]))
+    
+    def move(self, tiles, dt):
+        movement = [0,0]
+
+        movement[0] += self.vel_x * dt * self.game.target_fps
+        movement[1] += self.vel_y * dt * self.game.target_fps
+        self.vel_y += self.gravity * dt * self.game.target_fps
+
+        if self.vel_y > 7:
+            self.vel_y = 7
+
+        if self.stick != True:
+            self.collisions = self.physics_obj.movement(movement, tiles)
+            self.rect = self.physics_obj.rect
+            self.x = self.rect.x
+            self.y = self.rect.y
+        
+        if self.collisions["bottom"] == True:
+            self.stick = True
+
+        if self.collisions["right"] == True or self.collisions["left"] == True:
+            self.stick = True
+        
+        if self.collisions['top'] == True:
+            self.stick = True
+    
+    def explode_bomb(self):
+        self.explode = True
