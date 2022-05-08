@@ -205,15 +205,12 @@ class Melee_Weapon:
         self.dmg = self.weapon_info["damage"]
         self.crit_dmg = self.weapon_info["crit_dmg"]
         self.crit_rate = self.weapon_info["crit_rate"]
-        self.slash_speed = self.weapon_info["speed"]
-        self.lifetime = self.weapon_info["lifetime"]
+        self.lifetime = self.weapon_info["duration"]
         self.flip = True
-        self.attacked = False
         self.timer = Timer(self.weapon_info["attack_speed"])
+        self.attacked = not self.timer.get_var()
         self.angle = 0
         self.rect = pygame.Rect(0,0,self.img.get_width()/2,self.img.get_height())
-        self._render = True
-        self.arc = scripts.Arc(15, 0, 1, 2, 1)
 
         self.render_offset = self.weapon_info["render_offset"]
         self.render_offset_copy = self.weapon_info["render_offset"]
@@ -226,28 +223,21 @@ class Melee_Weapon:
         else:
             self.render_offset = self.render_offset_copy
 
-        if self._render == True:
-            blit_center(surf,pygame.transform.rotate(pygame.transform.flip(self.img, False, self.flip),angle),[(pos[0]+self.render_offset[0])-scroll[0],(pos[1]+self.render_offset[1])-scroll[1]])
-    
-    def attack2(self, angle):
+        blit_center(surf,pygame.transform.rotate(pygame.transform.flip(self.img, False, self.flip),angle),[(pos[0]+self.render_offset[0])-scroll[0],(pos[1]+self.render_offset[1])-scroll[1]])
+
+    def attack(self, arc_list, angle, pos):
         if self.attacked == False:
-            self.attacked = True
-            self._render = False
-            self.timer.make_var_false()
+            arc = scripts.Slash(pos, self.weapon_info["raduis"], -90, 90, self.weapon_info["curve_rate"], self.weapon_info["spacing"], angle, self.weapon_info["width"], self.weapon_info["width_decrease"], self.lifetime, self.weapon_info["color"], self.weapon_info["speed"], self.weapon_info["shrink"])
+            arc_list.append(arc)
             self.timer.set_time()
-            self.arc.start_angle = angle
+            self.timer.make_var_false()
+            self.attacked = not self.timer.get_var()
 
     def update(self,surf,scroll,pos,angle):
         self.render(surf,scroll,pos,angle)
         self.timer.update()
 
-        if self._render == False:
-            self.arc.update()
-            self.arc.render(surf, ((pos[0] + math.cos(math.radians(angle))*15)-scroll[0], (pos[1] + math.sin(math.radians(angle))*15)-scroll[1]), (190,190,190))
-
-            if self.arc.time >= 190:
-                self._render = True
-                self.attacked = False
+        self.attacked = not self.timer.get_var()
 
 class Ammo:
     def __init__(self,game,ammo_type):

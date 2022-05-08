@@ -1,45 +1,74 @@
 import pygame
 from scripts.Engine import *
 
-def advance(pos, angle, amt):
-    pos[0] += math.cos(angle) * amt
-    pos[1] += math.sin(angle) * amt
-    return pos
-
-class Arc:
-    def __init__(self, spacing, start_angle, speed, curve_rate, scale):
-        self.start_angle = start_angle
+class Slash:
+    def __init__(self, pos, raduis, start_angle, end_angle, curve_rate, spacing, direction, width, width_decrease, duration, color, speed, width_can_shrink = False):
+        # Setup Slash effect
+        self.pos = pos # position of the slash/arc, which is the center of the circle
+        self.size = raduis # how large the circle is
+        self.s_angle = start_angle # starting angle to create arc
+        self.end_angle = end_angle # the end angle where the arc ends
+        self.curve_rate = curve_rate # how the arc curves, i am not really sure
+        self.spacing = spacing # spacing/jumps between the points on the arc
+        self.h_stretch = 1 # how the circle is stretched on the horizontal axis
+        self.v_stretch = 1 # how the circle is stretched on the vertical axis
+        self.angle = direction # angle where slash will face
+        self.width = width # width of the arc
+        self.width_decrease = width_decrease # the amount the arc will decrease by
+        self.width_can_shrink = width_can_shrink # if the width is allowed to be decreased
+        self.duration = Timer(duration) # how long the arc can last
+        self.duration.set_time()
+        self.duration.make_var_false()
+        self.color = color # color of the arc
         self.speed = speed
-        self.curve_rate = curve_rate
-        self.scale = scale
-        self.time = 0
-        self.spacing = spacing
-        self.width = 0.2
-        self.max_width = 0
-        self.max_height = 0
+        # Surface that is going to be used for pixel perfect collision
+        self.surface = pygame.Surface((self.size*4, self.size*4)) 
 
-    def get_angle_points(self, t, curve_rate):
-        p = advance([0,0], self.start_angle + (0.5 - t) * math.pi * 4 * self.width, self.spacing)
-        p = advance(p, self.start_angle, (0.5 ** 2 - abs(0.5 - t) ** 2) * self.spacing * curve_rate)
-        return p
+    def create_points(self, h_stretch, v_stretch, scroll):
+        points = [] # points list
 
-    def calculate_points(self, start, end, curve_rate):
-        base_point = advance([0,0], self.start_angle, self.spacing)
-        point_count = 20
-        arc_points = [self.get_angle_points(start + (i / point_count) * (end - start), curve_rate) for i in range(point_count + 1)]
-        arc_points = [[p[0] * self.scale, p[1] * self.scale] for p in arc_points]
-        return arc_points
+        for i in range(self.s_angle, self.end_angle):
 
-    def update(self):
-        self.time += 10
-        self.time = self.time % 200
+            if i+self.spacing > self.end_angle: #  break out of the loop when the angle is higher than the end angle
+                break
+            
+            # This is to create points that go around in a circle (Well, this math makes a circle)
+            x = math.cos(math.radians(i+self.spacing)) * self.size 
+            y = math.sin(math.radians(i+self.spacing)) * self.size
 
-    def render(self, surf, pos, color):
-        start = max(0,  min(1, self.time / 20 - 2))
-        end = max(0, min(1, self.time / 20))
-        points = self.calculate_points(start, end, self.curve_rate + self.time / 5) + self.calculate_points(start, end, (self.curve_rate * 0.5 + self.time / 3) * 0.4)[::-1]
-        points = [[p[0] + pos[0], p[1] + pos[1]] for p in points]
-        pygame.draw.polygon(surf, color, points)
+            # Create the points
+            # Add the position to the (x, y) from above and apply the stretching effect on them
+            points.append([self.pos[0] + (x*h_stretch), self.pos[1] + (y*v_stretch)])
+
+        for i in range(len(points)):
+            newP = rotate(points[i], self.angle, self.pos, True) # Rotate the points using self.angle
+            points[i] = [newP[0]-scroll[0], newP[1]-scroll[1]]
+        
+        return points
+
+    def still_active(self):
+        return self.duration.get_var()
+
+    def render(self, surf, scroll, polygon=False):
+        p1 = self.create_points(self.h_stretch, self.v_stretch, scroll)
+        w = 0
+        for p in p1:
+            if p[0] > w:
+                w = p[0]
+        p2 = self.create_points(self.h_stretch * self.width, self.v_stretch, scroll)
+        p3 = (p1+p2)
+
+        self.h_stretch += self.curve_rate
+        self.pos[0] += math.cos(math.radians(self.angle)) * self.speed
+        self.pos[1] += math.sin(math.radians(self.angle)) * self.speed
+
+        if polygon == True:
+            pygame.draw.polygon(surf, self.color, p3)
+        else:
+            pygame.draw.lines(surf, self.color, False, p1)
+            pygame.draw.lines(surf, self.color, False, p2)
+        
+        self.duration.update()
 
 
 class VFX:

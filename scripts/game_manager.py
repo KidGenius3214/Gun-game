@@ -1,5 +1,5 @@
 #Game manager
-#It's basically where whole gameplay stuff is 
+#It's basically where all the gameplay stuff is 
 import pygame
 from pygame.locals import *
 pygame.init()
@@ -29,6 +29,7 @@ class GameManager:
         self.console = scripts.Console(self.game,(self.game.display.get_width()-4,25))
         self.current_level = 'Debug_level_0'
         self.bullets = []
+        self.arcs = []
         self.particles = []
         self.items = []
         self.entities = []
@@ -212,9 +213,6 @@ class GameManager:
                                     controller_states["buttons"]["shoot"] = False
 
         return controller_states            
-    
-    def melee_attack_logic2(self,weapon):
-        pass
 
     def singleplayer_game(self):
         self.game.display.fill((90,90,90))
@@ -280,6 +278,9 @@ class GameManager:
         for throwable in self.throwables:
             if not isinstance(throwable, scripts.SmokeGrenade):
                 throwable.draw(self.game.display, scroll)
+
+        for arc in self.arcs:
+            arc.render(self.game.display, scroll, True)
 
         b_remove_list = []
         n = 0
@@ -357,8 +358,7 @@ class GameManager:
                     self.player.flip = False
                 self.player.equipped_weapon.update(self.game.display,scroll,[self.player.get_center()[0],self.player.get_center()[1]],math.degrees(-angle))
                 if pygame.mouse.get_pressed()[0] == True:
-                    self.player.melee_attacked = True
-                    self.player.equipped_weapon.attack2(angle)
+                    self.player.equipped_weapon.attack(self.arcs, math.degrees(angle), self.player.get_center())
                 if controller_input["active"] == True:
                     x = self.controller_pos[0]+scroll[0]
                     if x < self.player.get_center()[0]:
@@ -395,6 +395,19 @@ class GameManager:
         for bullet in b_remove_list:
             try:
                 self.bullets.pop(bullet)
+            except:
+                pass
+        
+        a_remove_list = []
+        n = 0
+        for arc in self.arcs:
+            if arc.still_active() == True:
+                a_remove_list.append(n)
+            n + 1
+        a_remove_list.sort(reverse = True)
+        for arc in a_remove_list:
+            try:
+                self.arcs.pop(arc)
             except:
                 pass
         
