@@ -58,7 +58,7 @@ class Slash:
             if p[0] > w:
                 w = p[0]
         p2 = self.create_points(self.h_stretch * self.width, self.v_stretch, scroll)
-        p3 = (p1+p2)
+        p3 = (self.create_points(self.h_stretch, self.v_stretch, scroll) + self.create_points(self.h_stretch * self.width, self.v_stretch, scroll)[::-1])
 
         self.h_stretch += self.curve_rate
         self.pos[0] += math.cos(math.radians(self.angle)) * self.speed
