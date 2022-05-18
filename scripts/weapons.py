@@ -227,7 +227,25 @@ class Melee_Weapon:
 
     def attack(self, arc_list, angle, pos):
         if self.attacked == False:
-            arc = scripts.Slash(pos, self.weapon_info["raduis"], -90, 90, self.weapon_info["curve_rate"], self.weapon_info["spacing"], angle, self.weapon_info["width"], self.weapon_info["width_decrease"], self.lifetime, self.weapon_info["color"], self.weapon_info["speed"], self.weapon_info["shrink"])
+            arc = scripts.Slash(
+                
+                pos, 
+                self.weapon_info["raduis"], 
+                self.weapon_info["angles"][0], 
+                self.weapon_info["angles"][1], 
+                self.weapon_info["angles"][2], 
+                self.weapon_info["slash_rate"], 
+                self.weapon_info["curve_rate"], 
+                self.weapon_info["spacing"], 
+                angle, 
+                self.weapon_info["width"], 
+                self.weapon_info["width_decrease"], 
+                self.lifetime, 
+                self.weapon_info["color"], 
+                self.weapon_info["speed"], 
+                self.weapon_info["shrink"]
+
+                )
             arc_list.append(arc)
             self.timer.set_time()
             self.timer.make_var_false()

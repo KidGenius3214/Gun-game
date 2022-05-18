@@ -2,12 +2,14 @@ import pygame
 from scripts.Engine import *
 
 class Slash:
-    def __init__(self, pos, raduis, start_angle, end_angle, curve_rate, spacing, direction, width, width_decrease, duration, color, speed, width_can_shrink = False):
+    def __init__(self, pos, raduis, start_angle, s_end_angle, end_angle,  slash_rate, curve_rate, spacing, direction, width, width_decrease, duration, color, speed, width_can_shrink = False):
         # Setup Slash effect
         self.pos = pos # position of the slash/arc, which is the center of the circle
         self.size = raduis # how large the circle is
         self.s_angle = start_angle # starting angle to create arc
-        self.end_angle = end_angle # the end angle where the arc ends
+        self.s_end_angle = s_end_angle # this angle will be changed for the slash animation
+        self.end_angle = end_angle # the angle where the arc will end
+        self.slash_rate = slash_rate # how much the starting end angle will be changed by
         self.curve_rate = curve_rate # how the arc curves, i am not really sure
         self.spacing = spacing # spacing/jumps between the points on the arc
         self.h_stretch = 1 # how the circle is stretched on the horizontal axis
@@ -27,7 +29,7 @@ class Slash:
     def create_points(self, h_stretch, v_stretch, scroll):
         points = [] # points list
 
-        for i in range(self.s_angle, self.end_angle):
+        for i in range(self.s_angle, self.s_end_angle):
 
             if i+self.spacing > self.end_angle: #  break out of the loop when the angle is higher than the end angle
                 break
@@ -61,6 +63,10 @@ class Slash:
         self.h_stretch += self.curve_rate
         self.pos[0] += math.cos(math.radians(self.angle)) * self.speed
         self.pos[1] += math.sin(math.radians(self.angle)) * self.speed
+
+        self.s_end_angle += self.slash_rate
+        if self.s_end_angle == self.end_angle:
+            self.s_end_angle = self.end_angle
 
         if polygon == True:
             pygame.draw.polygon(surf, self.color, p3)
